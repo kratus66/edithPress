@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Evitar scroll horizontal en el canvas del builder */
+html,
+body {
+  overflow-x: hidden;
+}
+
+/* Puck override: desactivar estilos por defecto del iframe wrapper */
+[data-puck-component] {
+  position: relative;
+}
