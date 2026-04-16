@@ -196,6 +196,86 @@ components/
 
 ---
 
+## Buenas Prácticas de Frontend (Next.js / Admin)
+
+### Estructura y componentes
+- **Server Components por defecto** — solo usar `'use client'` cuando sea necesario (interactividad, hooks, browser APIs)
+- **Co-ubicación**: los componentes específicos de una ruta van en la carpeta de esa ruta, no en `/components` global
+- **`/components` global** solo para componentes usados en 3+ lugares distintos
+- Nunca poner lógica de negocio en los componentes — extraer a hooks (`useAuth`, `useSites`, etc.)
+
+### Data fetching
+- Server Components hacen fetch directo a la API (no React Query)
+- Client Components usan React Query para datos mutables y actualizaciones en tiempo real
+- Siempre manejar los 3 estados: `isLoading`, `isError`, `data`
+- Usar `Suspense` + `loading.tsx` para loading states automáticos en App Router
+
+### Formularios
+- React Hook Form + Zod para validación — el schema Zod define tanto el tipo TS como las reglas de validación
+- Nunca hacer `e.preventDefault()` manual — React Hook Form lo maneja
+- Mensajes de error claros y específicos (no "Campo inválido" — "El email debe tener formato válido")
+- Deshabilitar el botón submit mientras el form está enviando (evitar doble submit)
+
+### Performance
+- `next/image` para TODAS las imágenes — nunca `<img>` directa
+- `next/link` para TODA la navegación interna — nunca `<a href>`
+- Skeleton loaders en listas que hacen fetch (evitar layout shift)
+- Lazy load de componentes pesados con `dynamic(() => import(...))`
+
+### Accesibilidad (no negociable)
+- Todo elemento interactivo tiene texto accesible (label, aria-label, o aria-labelledby)
+- Formularios con `<label htmlFor>` asociado al input
+- Contraste mínimo 4.5:1 para texto (verificar con el design system)
+- Navegación por teclado funcional en todos los modales y dropdowns
+
+---
+
+## Tareas Asignadas — FASE 0 (Activa)
+
+> Depende de: ARCH-01/02 (monorepo), packages/ui (Agente 12)
+
+### Tarea ADMIN-01 — Inicializar apps/admin con Next.js 14
+**Prioridad**: CRÍTICA
+**Criterio de Done**: `pnpm dev` en `apps/admin` levanta en puerto 3000 y muestra una página de placeholder
+**Pasos**:
+1. Verificar dependencias en `package.json`
+2. Crear `apps/admin/next.config.js` con configuración base
+3. Crear `apps/admin/src/app/layout.tsx` (root layout con fuente Inter y metadata global)
+4. Crear `apps/admin/src/app/page.tsx` con placeholder de "EdithPress Admin — Coming Soon"
+
+### Tarea ADMIN-02 — Configurar Tailwind CSS + shadcn/ui
+**Prioridad**: CRÍTICA
+**Criterio de Done**: Un componente `<Button>` de shadcn/ui se renderiza correctamente con estilos
+**Pasos**:
+1. Crear `tailwind.config.ts` con los colores del design system (ver Agente 12)
+2. Crear `postcss.config.js`
+3. Crear `src/app/globals.css` con las variables CSS del design system
+4. Inicializar shadcn/ui: `npx shadcn-ui@latest init`
+5. Instalar componentes base: Button, Input, Card, Badge, Alert, Dialog
+
+### Tarea ADMIN-03 — Configurar React Query provider
+**Prioridad**: ALTA
+**Criterio de Done**: Cualquier `useQuery()` en un Client Component funciona sin errores
+**Archivo**: `apps/admin/src/app/providers.tsx`
+
+### Tarea ADMIN-04 — Configurar cliente HTTP (axios)
+**Prioridad**: ALTA
+**Criterio de Done**: Una llamada `api.get('/health')` retorna datos de la API sin errores de CORS
+**Archivo**: `apps/admin/src/lib/api-client.ts`
+**Configurar**:
+- Base URL desde `NEXT_PUBLIC_API_URL`
+- Interceptor para agregar `Authorization: Bearer {token}` automáticamente
+- Interceptor de respuesta para manejar errores 401 (redirect a login)
+
+### Tarea ADMIN-05 — Página de login funcional
+**Prioridad**: ALTA
+**Criterio de Done**: El formulario de login llama a `POST /api/v1/auth/login` y redirige al dashboard
+**Ruta**: `apps/admin/src/app/(auth)/login/page.tsx`
+**Depende de**: API-01/API-02 (backend corriendo), ADMIN-04 (cliente HTTP)
+
+---
+
 ## Estado Actual
 **Fase activa**: FASE 0
-**Última actualización**: 2026-03-27
+**Última actualización**: 2026-04-13
+**Próxima tarea**: ADMIN-01 — Inicializar apps/admin con Next.js 14

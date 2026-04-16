@@ -367,11 +367,11 @@ queue:domain-verification     → verificación de dominios
 - [x] Schema Prisma diseñado (modelos principales)
 - [x] Estrategia Redis documentada
 - [x] Índices clave identificados
-- [ ] `packages/database` inicializado (package.json, tsconfig)
-- [ ] `schema.prisma` creado en el repositorio
-- [ ] Primera migration generada (`npx prisma migrate dev`)
-- [ ] Seed script básico (planes, admin user)
-- [ ] Conexión a Postgres verificada en Docker
+- [x] `packages/database` inicializado (package.json, tsconfig)
+- [x] `schema.prisma` creado en el repositorio
+- [x] Primera migration generada (`npx prisma migrate dev`)
+- [x] Seed script básico (planes, admin user)
+- [x] Conexión a Postgres verificada en local (PostgreSQL 17)
 
 ### FASE 1 — MVP
 - [ ] Migrations para todos los modelos del MVP
@@ -388,6 +388,99 @@ queue:domain-verification     → verificación de dominios
 
 ---
 
+## Buenas Prácticas de Base de Datos
+
+### Diseño de schema
+- **Nunca almacenar contraseñas en texto plano** — siempre `passwordHash` con bcrypt
+- Todo modelo tiene `createdAt` y `updatedAt` como mínimo
+- IDs con `cuid()` en lugar de `autoincrement()` — más seguros para URLs públicas y multi-tenancy
+- Campos `Json` para datos semiestructurados (content de páginas, settings) — documentar su estructura en comentarios
+- Enums de Prisma para campos con valores fijos — nunca strings libres para estados
+
+### Migrations
+- Cada migration hace **exactamente una cosa** (agregar una tabla, no cinco)
+- Nunca editar una migration ya aplicada — crear una nueva
+- Nombres descriptivos: `add_page_versions_table`, no `migration_001`
+- Antes de correr una migration en producción: probar en staging con datos reales
+- **Migrations destructivas** (drop column, drop table) requieren aprobación del PM
+
+### Índices
+- Regla de oro: índice en toda columna usada en `WHERE`, `JOIN` u `ORDER BY` en queries frecuentes
+- No sobre-indexar: cada índice tiene costo en escritura
+- Revisar queries lentas con `EXPLAIN ANALYZE` antes de agregar índices nuevos
+- El composite index `[siteId, slug]` en Page es crítico para el renderer — no olvidar
+
+### Prisma — patrones obligatorios
+- **PrismaClient singleton**: una sola instancia compartida, nunca `new PrismaClient()` en cada request
+- En tests de integración: usar `$transaction` con rollback — nunca contaminar la DB de test
+- Logging de queries en development: `log: ['query', 'error']` para detectar N+1
+- Nunca usar `prisma.$queryRaw` salvo que sea absolutamente necesario — y si se usa, parametrizar SIEMPRE
+
+### Redis
+- Siempre definir TTL en cada key — nunca guardar sin expiración
+- Prefijos de namespace: `session:`, `cache:`, `rate_limit:`, `queue:` para evitar colisiones
+- Usar `SETEX` o `SET ... EX` en lugar de `SET` + `EXPIRE` por separado (operación atómica)
+
+---
+
+## Tareas Asignadas — FASE 0 (Activa)
+
+> Depende de: ARCH-01, ARCH-02 (monorepo), DEVOPS-01 (Postgres corriendo)
+
+### Tarea DB-01 — Inicializar packages/database
+**Prioridad**: CRÍTICA — El backend no puede funcionar sin esto
+**Criterio de Done**: `packages/database` es un workspace válido con Prisma instalado
+**Pasos**:
+1. Verificar que `packages/database/package.json` tiene `name: "@edithpress/database"`
+2. Instalar dependencias: `prisma` (devDep) y `@prisma/client` (dep)
+3. Crear `packages/database/prisma/schema.prisma` con el schema completo (ver sección Schema arriba)
+4. Crear `packages/database/src/index.ts` con el singleton de PrismaClient:
+```typescript
+import { PrismaClient } from '@prisma/client'
+
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
+
+export const prisma =
+  globalForPrisma.prisma ||
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  })
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+
+export * from '@prisma/client'
+```
+
+### Tarea DB-02 — Generar primera migration
+**Prioridad**: CRÍTICA
+**Criterio de Done**: `npx prisma migrate dev --name init` corre sin errores, tablas creadas en Postgres
+**Depende de**: DB-01, DEVOPS-01 (Postgres running), DEVOPS-02 (.env con DATABASE_URL)
+**Verificación**:
+```bash
+cd packages/database
+npx prisma migrate dev --name init
+npx prisma studio  # Abrir en browser para verificar tablas
+```
+
+### Tarea DB-03 — Crear seed script
+**Prioridad**: ALTA
+**Criterio de Done**: `pnpm db:seed` crea los 4 planes y 1 super admin sin errores
+**Archivo**: `packages/database/prisma/seed.ts`
+**Datos a sembrar**:
+- Plan Starter (id: "starter", $9.99/mes)
+- Plan Business (id: "business", $29.99/mes)
+- Plan Pro (id: "pro", $79.99/mes)
+- Plan Enterprise (id: "enterprise", custom)
+- Super Admin user: `admin@edithpress.com` / contraseña hasheada con bcrypt
+
+### Tarea DB-04 — Configurar Prisma en turbo.json
+**Prioridad**: ALTA
+**Criterio de Done**: `pnpm db:generate` desde la raíz regenera el cliente Prisma correctamente
+**Depende de**: ARCH-01 (turbo.json base)
+
+---
+
 ## Estado Actual
 **Fase activa**: FASE 0
-**Última actualización**: 2026-03-27
+**Última actualización**: 2026-04-13
+**Próxima tarea**: DB-05 (FASE 1) — PrismaClient singleton validado con backend

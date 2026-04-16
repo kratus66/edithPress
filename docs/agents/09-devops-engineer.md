@@ -251,11 +251,11 @@ server {
 - [x] docker-compose.yml diseñado
 - [x] CI pipeline diseñado
 - [x] Nginx config diseñada
-- [ ] docker-compose.yml creado en el repo
-- [ ] Postgres + Redis + MinIO + Mailpit levantados y funcionando
-- [ ] Script de setup inicial (setup.sh)
-- [ ] .env.example completo con todas las variables
-- [ ] GitHub Actions CI básico (lint + typecheck + test)
+- [x] docker-compose.yml creado en el repo
+- [x] Postgres + Redis + MinIO + Mailpit levantados y funcionando
+- [x] Script de setup inicial (setup.sh)
+- [x] .env.example completo con todas las variables
+- [x] GitHub Actions CI básico (lint + typecheck + test)
 
 ### FASE 1 — MVP
 - [ ] Dockerfiles para cada app (multi-stage builds)
@@ -276,6 +276,126 @@ server {
 
 ---
 
+## Buenas Prácticas de DevOps
+
+### Docker
+- Usar imágenes `*-alpine` siempre que sea posible (menor superficie de ataque y tamaño)
+- Siempre definir `healthcheck` en servicios stateful (Postgres, Redis)
+- Usar volúmenes nombrados (no bind mounts) para datos persistentes en dev
+- Variables de entorno sensibles NUNCA en el `docker-compose.yml` — van en `.env` que está en `.gitignore`
+- Los Dockerfiles de producción usan **multi-stage builds**: stage de build separado del stage de runtime
+
+### Seguridad en CI/CD
+- Secrets de GitHub Actions en `Settings > Secrets` — nunca en código
+- `pnpm install --frozen-lockfile` en CI — nunca `pnpm install` sin flag (puede actualizar lockfile)
+- El pipeline FALLA si `npm audit` encuentra vulnerabilidades críticas
+- Cada PR pasa por lint + typecheck + tests antes de poder merge
+
+### Variables de entorno
+- `.env.example` es el contrato: tiene TODAS las variables con valores de ejemplo (nunca reales)
+- `.env` está en `.gitignore` y NUNCA se commitea
+- En CI/CD se usan GitHub Secrets, nunca `.env` files
+- Convención de nombres: `SNAKE_UPPER_CASE`, con prefijo del servicio (`STRIPE_`, `AWS_`, `JWT_`)
+
+### Nginx
+- Siempre pasar `X-Real-IP` y `X-Forwarded-For` al backend para rate limiting correcto
+- `proxy_hide_header X-Powered-By` en todas las configuraciones
+- Timeouts configurados explícitamente (`proxy_read_timeout`, `proxy_connect_timeout`)
+
+---
+
+## Tareas Asignadas — FASE 0 (Activa)
+
+> Estas tareas son la base del entorno de desarrollo. Sin ellas nadie puede desarrollar.
+
+### Tarea DEVOPS-01 — Crear docker-compose.yml
+**Prioridad**: CRÍTICA — Desbloquea Database Engineer y Backend Developer
+**Criterio de Done**: `docker-compose up -d` levanta Postgres + Redis + MinIO + Mailpit, todos healthy
+**Archivo**: `docker-compose.yml` en la raíz del proyecto
+**Contenido base**: Ya documentado en este archivo (ver sección Docker Compose arriba)
+**Verificación**:
+```bash
+docker-compose up -d
+docker-compose ps  # todos deben estar "healthy"
+# Probar conexión:
+psql postgresql://edithpress:devpassword123@localhost:5432/edithpress_dev -c "SELECT 1"
+redis-cli -p 6379 ping  # debe responder PONG
+```
+
+### Tarea DEVOPS-02 — Crear .env.example
+**Prioridad**: CRÍTICA — Todos los agentes lo necesitan para saber qué configurar
+**Criterio de Done**: El archivo existe, tiene todas las variables documentadas, ningún valor real
+**Archivo**: `.env.example` en la raíz
+**Variables mínimas para FASE 0**:
+```env
+# Base de datos
+DATABASE_URL=postgresql://edithpress:devpassword123@localhost:5432/edithpress_dev
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# JWT (generar con: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
+JWT_SECRET=CHANGE_ME_min_64_chars
+JWT_REFRESH_SECRET=CHANGE_ME_min_64_chars
+
+# Stripe (obtener en dashboard.stripe.com/test/apikeys)
+STRIPE_SECRET_KEY=sk_test_CHANGE_ME
+STRIPE_WEBHOOK_SECRET=whsec_CHANGE_ME
+
+# AWS / MinIO dev
+AWS_ACCESS_KEY_ID=minio_dev
+AWS_SECRET_ACCESS_KEY=minio_dev_password
+AWS_BUCKET_NAME=edithpress-media
+AWS_REGION=us-east-1
+AWS_ENDPOINT=http://localhost:9000
+
+# Resend / Mailpit dev
+RESEND_API_KEY=CHANGE_ME
+SMTP_HOST=localhost
+SMTP_PORT=1025
+
+# URLs
+APP_URL=http://localhost:3000
+API_URL=http://localhost:3001
+BUILDER_URL=http://localhost:3002
+RENDERER_URL=http://localhost:3003
+```
+
+### Tarea DEVOPS-03 — Crear script de setup inicial
+**Prioridad**: ALTA
+**Criterio de Done**: Un desarrollador nuevo puede ejecutar `./infrastructure/scripts/setup.sh` y tener el entorno listo
+**Archivo**: `infrastructure/scripts/setup.sh`
+**Pasos del script**:
+1. Verificar Node >= 20 y pnpm >= 9
+2. Copiar `.env.example` a `.env` si no existe
+3. Ejecutar `docker-compose up -d`
+4. Esperar healthchecks de Postgres y Redis
+5. Ejecutar `pnpm install`
+6. Ejecutar `pnpm db:generate` (genera Prisma client)
+7. Ejecutar `pnpm db:migrate` (aplica migrations)
+8. Ejecutar `pnpm db:seed` (datos iniciales)
+9. Imprimir URLs de cada servicio
+
+### Tarea DEVOPS-04 — Crear GitHub Actions CI básico
+**Prioridad**: ALTA
+**Criterio de Done**: El workflow corre en push a `main`/`develop` y en PRs. Lint + typecheck + build pasan.
+**Archivo**: `.github/workflows/ci.yml`
+**Contenido**: Ya documentado en este archivo (ver sección GitHub Actions arriba)
+**Depende de**: ARCH-01 (turbo.json) y ARCH-02 (pnpm-workspace.yaml)
+
+### Tarea DEVOPS-05 — Crear infrastructure/docker/postgres/init.sql
+**Prioridad**: MEDIA
+**Criterio de Done**: Al iniciar Postgres, la base de datos `edithpress_dev` está lista con extensiones
+**Contenido mínimo**:
+```sql
+-- Habilitar extensiones útiles
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";  -- Para búsquedas de texto
+```
+
+---
+
 ## Estado Actual
 **Fase activa**: FASE 0
-**Última actualización**: 2026-03-27
+**Última actualización**: 2026-04-13
+**Próxima tarea**: DEVOPS-06 (FASE 1) — Dockerfiles multi-stage para cada app

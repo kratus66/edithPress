@@ -224,8 +224,8 @@ edithpress/
 - [ ] tsconfig.base.json en packages/config
 - [ ] ESLint config base creado
 - [ ] Prettier config creado
-- [ ] .gitignore completo
-- [ ] README.md inicial
+- [x] .gitignore completo
+- [x] README.md inicial
 
 ### FASE 1 — MVP
 - [ ] OpenAPI spec completa para endpoints MVP
@@ -240,6 +240,118 @@ edithpress/
 
 ---
 
+## Buenas Prácticas de Arquitectura
+
+### Principios generales
+- **YAGNI** (You Aren't Gonna Need It): no diseñar para requisitos hipotéticos. Si no está en el roadmap, no se arquitecta.
+- **Separación de responsabilidades**: cada paquete/app tiene una sola razón para cambiar
+- **Contratos explícitos**: toda comunicación entre apps va a través de `packages/types` — nunca importar tipos de otra app directamente
+- **Dependencias unidireccionales**: apps pueden importar packages, pero packages NO importan apps
+
+### TypeScript estricto — configuración obligatoria
+```json
+// tsconfig.base.json — aplica a TODAS las apps y paquetes
+{
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": true
+  }
+}
+```
+
+### ESLint — reglas obligatorias
+- `@typescript-eslint/no-explicit-any`: error — nunca usar `any`, usar `unknown` y narrows
+- `@typescript-eslint/no-floating-promises`: error — toda Promise debe ser awaited o manejada
+- `no-console`: warn en producción — usar un logger estructurado
+
+### Turborepo — convenciones
+- Cada app/package define sus propios scripts en `package.json`
+- `turbo.json` orquesta el orden de ejecución con `dependsOn`
+- El cache de Turbo está habilitado: los outputs se cachean si los inputs no cambian
+- Nunca usar `--force` en turbo salvo debugging explícito
+
+### Gestión de dependencias
+- Versiones exactas (sin `^` ni `~`) en dependencies de producción
+- Dependencias de desarrollo pueden usar `^`
+- Dependencias compartidas van en el `package.json` raíz con `catalog:`
+- Nunca duplicar una dependencia entre apps si puede estar en packages/
+
+---
+
+## Tareas Asignadas — FASE 0 (Activa)
+
+> Estas tareas desbloquean a TODOS los demás agentes. Máxima prioridad.
+
+### Tarea ARCH-01 — Configurar turbo.json
+**Prioridad**: CRÍTICA — Desbloquea el sistema de builds
+**Criterio de Done**: `pnpm build` desde la raíz ejecuta builds en orden correcto sin errores
+**Archivo**: `turbo.json`
+```json
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": { "dependsOn": ["^lint"] },
+    "typecheck": { "dependsOn": ["^typecheck"] },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "db:generate": { "cache": false },
+    "db:migrate": { "cache": false },
+    "db:seed": { "cache": false },
+    "clean": { "cache": false }
+  }
+}
+```
+
+### Tarea ARCH-02 — Configurar pnpm-workspace.yaml
+**Prioridad**: CRÍTICA
+**Criterio de Done**: `pnpm install` resuelve todos los workspace:* sin errores
+**Archivo**: `pnpm-workspace.yaml`
+```yaml
+packages:
+  - "apps/*"
+  - "packages/*"
+```
+
+### Tarea ARCH-03 — Crear tsconfig.base.json
+**Prioridad**: CRÍTICA
+**Criterio de Done**: Todos los apps y packages heredan de este base sin conflictos
+**Archivo**: `packages/config/tsconfig.base.json`
+
+### Tarea ARCH-04 — Crear configuración ESLint compartida
+**Prioridad**: ALTA
+**Criterio de Done**: `pnpm lint` pasa en todos los workspaces
+**Archivo**: `packages/config/eslint-base.js`
+
+### Tarea ARCH-05 — Crear configuración Prettier
+**Prioridad**: ALTA
+**Criterio de Done**: `pnpm format` formatea consistentemente todos los archivos
+**Archivo**: `packages/config/prettier.js`
+
+### Tarea ARCH-06 — Crear .gitignore completo
+**Prioridad**: ALTA
+**Criterio de Done**: `.next/`, `dist/`, `node_modules/`, `.env` nunca entran al repo
+**Revisar**: que `.env` esté en `.gitignore` antes de cualquier commit
+
+### Tarea ARCH-07 — Crear README.md inicial
+**Prioridad**: MEDIA
+**Criterio de Done**: Un dev nuevo puede clonar, instalar y levantar el entorno en < 15 minutos siguiendo el README
+
+---
+
 ## Estado Actual
 **Fase activa**: FASE 0
-**Última actualización**: 2026-03-27
+**Última actualización**: 2026-04-13
+**Próxima tarea**: ARCH-01 a ARCH-07 completadas — FASE 0 finalizada

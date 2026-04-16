@@ -152,17 +152,17 @@ modules/{nombre}/
 ### FASE 0
 - [x] Módulos planificados y documentados
 - [x] Convenciones de API definidas
-- [ ] apps/api inicializado (NestJS CLI)
-- [ ] Dependencias instaladas (nest, prisma, passport, stripe, etc.)
-- [ ] AppModule configurado (ConfigModule, ThrottlerModule, etc.)
-- [ ] main.ts con Helmet, CORS, ValidationPipe global
-- [ ] Health check endpoint: GET /api/health
+- [x] apps/api inicializado (NestJS CLI)
+- [x] Dependencias instaladas (nest, prisma, passport, stripe, etc.)
+- [x] AppModule configurado (ConfigModule, ThrottlerModule, etc.)
+- [x] main.ts con Helmet, CORS, ValidationPipe global
+- [x] Health check endpoint: GET /api/v1/health
 
 ### FASE 1 — MVP
-- [ ] Módulo auth completo (register, login, refresh, logout, verify-email)
-- [ ] Módulo users (me, update, delete)
-- [ ] Módulo tenants (create, get, update)
-- [ ] Multi-tenancy middleware
+- [x] Módulo auth completo (register, login, refresh, logout, verify-email)
+- [x] Módulo users (me, update, delete)
+- [x] Módulo tenants (create, get, update)
+- [x] Multi-tenancy middleware (TenantGuard, RolesGuard, @CurrentUser, @Roles)
 - [ ] Módulo sites (CRUD + publish)
 - [ ] Módulo pages (CRUD + publish + versioning)
 - [ ] Módulo content (get + save page builder content)
@@ -206,6 +206,102 @@ API_URL=http://localhost:3001
 
 ---
 
+## Buenas Prácticas de Backend (NestJS)
+
+### Estructura de código
+- **Un módulo = una responsabilidad**: el módulo `auth` no hace queries de `sites`
+- **Servicios, no controllers**: la lógica de negocio va en el Service, nunca en el Controller
+- **DTOs con validación**: todo input externo pasa por un DTO con `class-validator`. Regla: `whitelist: true, forbidNonWhitelisted: true, transform: true` en el `ValidationPipe` global
+- Nunca retornar la entidad de Prisma directamente — mapear a un DTO de respuesta para evitar exponer campos sensibles (`passwordHash`, tokens internos)
+
+### Manejo de errores
+- Usar las excepciones de NestJS: `NotFoundException`, `UnauthorizedException`, `ForbiddenException`, `ConflictException`
+- Nunca hacer `catch(e) {}` vacío — siempre loguear o relanzar
+- Un `GlobalExceptionFilter` centraliza el formato de error `{ error: { code, message, statusCode } }`
+- En producción: mensajes genéricos al cliente, detalles técnicos solo en logs
+
+### Seguridad — obligatorio en cada endpoint
+- Todo endpoint autenticado lleva `@UseGuards(JwtAuthGuard)`
+- Todo endpoint que accede a datos de un tenant lleva `@UseGuards(JwtAuthGuard, TenantGuard)`
+- El `TenantGuard` verifica que el recurso pertenece al `tenantId` del JWT — NUNCA confiar en parámetros de URL sin verificar
+- Rate limiting: aplicar `@Throttle()` en endpoints de auth y acciones destructivas
+
+### Async / Promises
+- Toda operación async usa `async/await` — nunca callbacks ni `.then()` encadenados
+- Toda Promise debe ser awaited o manejada — el linter lo fuerza (`no-floating-promises`)
+- Transacciones de DB para operaciones que modifican múltiples tablas (`prisma.$transaction`)
+
+### Testing
+- Cobertura mínima: 80% en servicios
+- Mockear SOLO servicios externos (Stripe, S3, Resend) — la DB usa instancia real de test
+- Nomenclatura: `describe('AuthService') > it('should throw when password is wrong')`
+
+---
+
+## Tareas Asignadas — FASE 0 (Activa)
+
+> Depende de: ARCH-01/02 (monorepo), DB-01/02 (Prisma), DEVOPS-01/02 (Docker + .env)
+
+### Tarea API-01 — Inicializar apps/api con NestJS
+**Prioridad**: CRÍTICA
+**Criterio de Done**: `pnpm dev` en `apps/api` levanta el servidor en puerto 3001 sin errores
+**Pasos**:
+1. Verificar que `apps/api/package.json` tiene todas las dependencias del stack
+2. Crear `apps/api/src/main.ts`:
+```typescript
+import { NestFactory } from '@nestjs/core'
+import { ValidationPipe } from '@nestjs/common'
+import helmet from 'helmet'
+import { AppModule } from './app.module'
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule)
+
+  // Seguridad
+  app.use(helmet())
+  app.enableCors({
+    origin: process.env.APP_URL,
+    credentials: true,
+  })
+
+  // Validación global de DTOs
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }))
+
+  // Prefijo global de API
+  app.setGlobalPrefix('api/v1')
+
+  await app.listen(3001)
+  console.log(`API running on http://localhost:3001/api/v1`)
+}
+bootstrap()
+```
+
+### Tarea API-02 — Crear AppModule base
+**Prioridad**: CRÍTICA
+**Criterio de Done**: AppModule carga ConfigModule, ThrottlerModule y DatabaseModule sin errores
+**Archivo**: `apps/api/src/app.module.ts`
+**Incluir**:
+- `ConfigModule.forRoot({ isGlobal: true })` — para acceder a env vars en toda la app
+- `ThrottlerModule` — rate limiting global
+- Import de `DatabaseModule` (wrapper del PrismaClient de `@edithpress/database`)
+
+### Tarea API-03 — Health check endpoint
+**Prioridad**: ALTA
+**Criterio de Done**: `GET /api/v1/health` retorna `{ status: "ok", timestamp: "..." }` con HTTP 200
+**Por qué**: Docker healthcheck, CI smoke test, monitoreo en producción lo necesitan
+
+### Tarea API-04 — Configurar Swagger/OpenAPI en development
+**Prioridad**: MEDIA
+**Criterio de Done**: `GET /api/docs` muestra la UI de Swagger solo cuando `NODE_ENV=development`
+**Nota**: Deshabilitar completamente en producción (leak de información)
+
+---
+
 ## Estado Actual
 **Fase activa**: FASE 0
-**Última actualización**: 2026-03-27
+**Última actualización**: 2026-04-13
+**Próxima tarea**: Módulo sites (CRUD + publish)

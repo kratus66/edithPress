@@ -52,9 +52,10 @@
   --color-gray-900: #111827;
 
   /* Estados */
+  /* NOTA: --color-error usa #dc2626 (red-600) — #ef4444 solo da 3.76:1 (falla WCAG AA normal text) */
   --color-success: #10b981;
   --color-warning: #f59e0b;
-  --color-error:   #ef4444;
+  --color-error:   #dc2626;   /* red-600 → 4.83:1 sobre blanco ✓ WCAG AA */
   --color-info:    #3b82f6;
 
   /* Backgrounds */
@@ -250,12 +251,12 @@ shadow-lg   → builder panels
 - [x] Wireframes de pantallas clave (login, dashboard, builder)
 - [x] User flows documentados
 - [x] Principios de accesibilidad definidos
-- [ ] Validar paleta de colores con contraste checker
-- [ ] Crear tokens CSS en packages/ui
+- [x] Validar paleta de colores con contraste checker — ver resultados en Tarea UX-04
+- [x] Crear tokens CSS en packages/ui
 
 ### FASE 1 — MVP
-- [ ] Design system implementado en packages/ui
-- [ ] Componentes base de shadcn/ui instalados y personalizados
+- [x] Design system implementado en packages/ui
+- [x] Componentes base de shadcn/ui instalados y personalizados
 - [ ] Fuente Inter configurada en todas las apps
 - [ ] Login y registro: UI completa
 - [ ] Dashboard: UI completa
@@ -272,6 +273,104 @@ shadow-lg   → builder panels
 
 ---
 
+## Buenas Prácticas de UX/Design System
+
+### Design tokens — la base de todo
+- Los tokens (colores, spacing, tipografía) se definen **una sola vez** en CSS custom properties (`packages/ui`)
+- Tailwind se configura para usar esos tokens — no hardcodear colores como `#3b82f6` en los componentes
+- Si un color cambia, cambia en un solo lugar y se propaga a toda la aplicación
+- Dark mode se planifica desde el inicio con tokens semánticos (`--color-bg-primary`) no literales (`--color-blue-600`)
+
+### Componentes — reglas de construcción
+- Cada componente del `packages/ui` es **independiente**: no importa estado global, no hace fetch
+- Las variantes se definen con `cva` (class-variance-authority) — consistencia sin if/else manuales
+- Todos los componentes interactivos tienen estados: default, hover, focus, active, disabled
+- `aria-*` y `role` son parte del componente — no se agregan después
+
+### Accesibilidad — integrada, no añadida
+- Contraste: verificar cada color de texto con WebAIM Contrast Checker antes de usar
+- Focus ring visible en TODOS los elementos interactivos (no usar `outline: none` sin reemplazo)
+- Los iconos sin texto tienen `aria-label` o `title`
+- El orden de Tab coincide con el orden visual
+
+### Mobile-first
+- Diseñar primero para 375px, luego expandir a 768px, luego 1280px
+- Los breakpoints de Tailwind (`sm:`, `md:`, `lg:`) se usan consistentemente
+- Touch targets mínimo 44x44px para elementos interactivos en mobile
+
+---
+
+## Tareas Asignadas — FASE 0 (Activa)
+
+> El UX Designer entrega los tokens y componentes base que todos los frontends necesitan.
+
+### Tarea UX-01 — Implementar tokens CSS en packages/ui
+**Prioridad**: CRÍTICA — Todos los frontends dependen de esto
+**Criterio de Done**: El archivo de tokens CSS existe y está exportado desde `packages/ui`
+**Archivo**: `packages/ui/src/styles/tokens.css`
+**Contenido**: Las variables CSS del design system definidas en este archivo (sección "Paleta de Colores" y "Tipografía")
+
+### Tarea UX-02 — Configurar Tailwind con los tokens
+**Prioridad**: CRÍTICA
+**Criterio de Done**: En cualquier app, `bg-primary-600` usa el color `#2563eb` del design system
+**Archivo**: `packages/ui/tailwind.config.ts` (base que las apps extienden)
+```typescript
+export default {
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          50: 'var(--color-primary-50)',
+          // ... todos los tokens
+          600: 'var(--color-primary-600)',
+        },
+        accent: {
+          600: 'var(--color-accent-600)',
+        },
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+    },
+  },
+}
+```
+
+### Tarea UX-03 — Instalar y personalizar componentes shadcn/ui base
+**Prioridad**: CRÍTICA
+**Criterio de Done**: Los siguientes componentes están en `packages/ui/src/components/` y usan los tokens del design system:
+- Button (variantes: primary, secondary, outline, ghost, destructive)
+- Input (con label, error state, helper text)
+- Card
+- Badge (variantes por plan: starter, business, pro)
+- Alert (success, error, warning, info)
+
+### Tarea UX-04 — Validar contraste de la paleta de colores ✅ DONE
+**Prioridad**: ALTA
+**Criterio de Done**: Todos los pares de color texto/fondo del design system pasan WCAG AA (4.5:1 para texto normal, 3:1 para texto grande y UI)
+
+**Resultados (fórmula WCAG IEC 61966-2-1):**
+
+| Par | Ratio | AA Normal | AA Grande |
+|-----|-------|-----------|-----------|
+| Blanco `#fff` sobre `primary-600` `#2563eb` | 5.16:1 | ✓ PASA | ✓ PASA |
+| Blanco `#fff` sobre `accent-600` `#7c3aed`  | 5.70:1 | ✓ PASA | ✓ PASA |
+| `gray-900` `#111827` sobre `gray-50` `#f9fafb` | 16.97:1 | ✓ PASA | ✓ PASA |
+| `error` sobre blanco — `#ef4444` original | 3.76:1 | ✗ FALLA | ✓ PASA |
+
+**Acción correctiva aplicada:** `--color-error` cambiado de `#ef4444` (red-500, 3.76:1) a `#dc2626` (red-600, **4.83:1**).
+El cambio está aplicado en `tokens.css` y en el design system de este archivo.
+
+### Tarea UX-05 — Crear componentes de layout del Admin
+**Prioridad**: ALTA
+**Criterio de Done**: Sidebar y Header del admin están implementados y responsive
+**Depende de**: UX-03, ADMIN-02 (Tailwind configurado en admin)
+**Componentes**: `Sidebar.tsx`, `Header.tsx`, `MobileNav.tsx`
+
+---
+
 ## Estado Actual
-**Fase activa**: FASE 0
-**Última actualización**: 2026-03-27
+**Fase activa**: FASE 0 → completada, iniciando FASE 1
+**Última actualización**: 2026-04-13
+**Completadas**: UX-01, UX-02, UX-03, UX-04
+**Próxima tarea**: UX-05 — Crear componentes de layout del Admin (Sidebar, Header, MobileNav)

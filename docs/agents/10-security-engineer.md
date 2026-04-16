@@ -156,10 +156,14 @@ Permissions-Policy: camera=(), microphone=(), geolocation=()
 - [x] OWASP mitigaciones documentadas
 - [x] HTTP headers definidos
 - [x] GDPR plan documentado
-- [ ] Revisar que bcrypt esté configurado (12 rounds) en auth module
-- [ ] Revisar que Helmet.js esté en main.ts
-- [ ] Revisar que class-validator tenga whitelist: true global
-- [ ] Confirmar CORS restrictivo en API
+- [x] Revisar que bcrypt esté configurado (12 rounds) en auth module — `BCRYPT_ROUNDS = 12` en auth.constants.ts ✅
+- [x] Revisar que Helmet.js esté en main.ts — configurado y ajustado al spec ✅
+- [x] Revisar que class-validator tenga whitelist: true global — `whitelist: true, forbidNonWhitelisted: true` en ValidationPipe ✅
+- [x] Confirmar CORS restrictivo en API — solo `APP_URL` permitido ✅
+- [x] SEC-01 — Security checklist creado en `docs/security-checklist.md`
+- [x] SEC-02 — Helmet verificado en vivo: todos los headers del spec presentes ✅
+- [x] SEC-03 — CORS verificado en vivo: localhost:9999 bloqueado, localhost:3000 permitido ✅
+- [x] SEC-05 — .gitignore verificado y reforzado (`*.key`, `*.pem`, certs cubiertos)
 
 ### FASE 1 — MVP
 - [ ] Auditoría de seguridad del módulo auth
@@ -185,6 +189,90 @@ Permissions-Policy: camera=(), microphone=(), geolocation=()
 
 ---
 
+## Buenas Prácticas de Seguridad
+
+### Filosofía: Security by Default
+- La seguridad no es una fase — es un requisito de cada tarea. Ningún módulo pasa code review sin pasar el security checklist.
+- **Principio de menor privilegio**: cada rol tiene solo los permisos mínimos necesarios. Dudar antes de agregar permisos.
+- **Defensa en profundidad**: no depender de una sola capa. Validar en el DTO Y en el servicio Y en el guard.
+- **Fail secure**: ante duda, denegar el acceso. Nunca fallar "abierto".
+
+### Contraseñas y tokens — no negociable
+- `bcrypt` con **mínimo 12 rounds** — nunca menos, aunque sea más lento
+- JWT secrets: mínimo 256 bits, generados con `crypto.randomBytes(64).toString('hex')`
+- Refresh tokens: UUIDs opacos almacenados en httpOnly cookies — nunca en localStorage
+- Nunca loguear tokens, contraseñas, ni datos de tarjetas — ni en development
+
+### Input validation — todo input es malicioso hasta que se demuestre lo contrario
+- Todo endpoint externo tiene un DTO con class-validator
+- `forbidNonWhitelisted: true` en el ValidationPipe global — rechazar campos no esperados
+- HTML del editor: pasar por DOMPurify antes de guardar en DB
+- URLs de imágenes externas: validar contra whitelist de dominios permitidos
+
+### Tenant isolation — crítico
+- El `tenantId` viene del JWT, NUNCA del body o query params del request
+- El `TenantGuard` verifica que `resource.tenantId === req.user.tenantId` en CADA operación
+- Tests específicos de tenant isolation son obligatorios para cada módulo con datos de tenant
+
+---
+
+## Tareas Asignadas — FASE 0 (Activa)
+
+> El Security Engineer actúa como revisor — sus tareas son verificaciones de implementación de otros agentes.
+
+### Tarea SEC-01 — Crear Security Checklist para Code Review
+**Prioridad**: CRÍTICA — Aplica antes de que empiece cualquier desarrollo de FASE 1
+**Criterio de Done**: El checklist existe y el PM lo ha agregado al DoD
+**Archivo**: `docs/security-checklist.md`
+**Contenido del checklist**:
+```markdown
+## Checklist de Seguridad — Obligatorio en todo PR
+
+### Backend
+- [ ] Todo endpoint tiene guard de autenticación (o es explícitamente público)
+- [ ] Todo acceso a datos de tenant usa TenantGuard
+- [ ] Los DTOs tienen whitelist:true y class-validator
+- [ ] No hay console.log con datos sensibles
+- [ ] Las contraseñas usan bcrypt (12+ rounds)
+- [ ] Los secrets están en variables de entorno, no en código
+
+### Frontend  
+- [ ] No hay datos sensibles en localStorage
+- [ ] Los formularios validan con Zod antes de enviar
+- [ ] No se construyen URLs con concatenación de strings de usuario
+
+### General
+- [ ] npm audit sin vulnerabilidades críticas
+- [ ] No hay TODO de seguridad en el código
+```
+
+### Tarea SEC-02 — Verificar configuración de Helmet en API
+**Prioridad**: CRÍTICA
+**Criterio de Done**: `curl -I http://localhost:3001/api/v1/health` muestra los headers de seguridad correctos
+**Depende de**: API-01 (backend inicializado)
+**Verificar headers**:
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- Ausencia de `X-Powered-By`
+
+### Tarea SEC-03 — Verificar CORS restrictivo
+**Prioridad**: CRÍTICA
+**Criterio de Done**: Una petición desde `http://localhost:9999` (no permitido) recibe error CORS; desde `http://localhost:3000` funciona
+**Depende de**: API-01
+
+### Tarea SEC-04 — Revisar configuración de bcrypt en AuthService
+**Prioridad**: CRÍTICA
+**Criterio de Done**: El código de hashing usa exactamente 12 rounds (`bcrypt.hash(password, 12)`)
+**Depende de**: Módulo auth de Backend Developer (FASE 1)
+
+### Tarea SEC-05 — Verificar .gitignore
+**Prioridad**: CRÍTICA
+**Criterio de Done**: `git status` nunca muestra `.env`, `*.key`, `*.pem` como archivos sin trackear que puedan commitarse
+
+---
+
 ## Estado Actual
 **Fase activa**: FASE 0
-**Última actualización**: 2026-03-27
+**Última actualización**: 2026-04-13
+**Próxima tarea**: SEC-04 — Revisar configuración de bcrypt en AuthService (FASE 1, ya verificado en código)

@@ -206,20 +206,22 @@ export const options = {
 - [x] Estrategia de testing definida
 - [x] Flujos E2E críticos documentados
 - [x] Convenciones de testing establecidas
-- [ ] Jest configurado en apps/api
-- [ ] Vitest configurado en apps/admin
-- [ ] Playwright configurado en la raíz
-- [ ] Coverage thresholds configurados en turbo.json
+- [x] Jest configurado en apps/api
+- [x] Vitest configurado en apps/admin
+- [x] Vitest configurado en apps/builder
+- [x] Playwright configurado en la raíz
+- [x] Coverage thresholds configurados en jest.config.ts (backend) y vitest.config.ts (frontend)
 
 ### FASE 1 — MVP
-- [ ] Unit tests del módulo auth (>80% coverage)
-- [ ] Unit tests del módulo sites y pages
-- [ ] Integration tests de auth endpoints
+- [x] Unit tests del módulo auth (>80% coverage) — auth.service.spec.ts (12 tests)
+- [x] Unit tests del módulo sites y pages — sites.service.spec.ts (15 tests), pages.service.spec.ts (21 tests)
+- [x] Unit tests del módulo tenants — tenants.service.spec.ts (12 tests)
+- [x] Integration tests de auth endpoints — auth.e2e-spec.ts (9 tests: 201/409/400 register, 200/401/429 login)
 - [ ] Integration tests de sites y pages endpoints
 - [ ] E2E: Flujo 1 — Registro y primer sitio
 - [ ] E2E: Flujo 2 — Editar y publicar página
 - [ ] E2E: Flujo 3 — Suscripción (Stripe test mode)
-- [ ] E2E: Flujo 5 — Tenant isolation
+- [x] E2E: Flujo 5 — Tenant isolation — e2e/tenant-isolation.e2e.spec.ts (6 tests, requiere API activa)
 - [ ] CI: tests corriendo en GitHub Actions
 
 ### FASE 2 — v1
@@ -236,6 +238,108 @@ export const options = {
 
 ---
 
+## Buenas Prácticas de Testing
+
+### Filosofía de tests
+- **Los tests son código de producción**: mismos estándares de calidad, mismo review
+- **Un test prueba una cosa**: si un test falla, debe ser obvio qué se rompió
+- **Tests deterministas**: el mismo test siempre da el mismo resultado, sin importar el orden de ejecución o el momento
+- **Arrange-Act-Assert (AAA)**: toda prueba tiene estas 3 secciones, separadas visualmente
+
+### Qué NO testear
+- No testear la implementación interna — testear el comportamiento observable
+- No testear getters/setters triviales
+- No testear código de terceros (Prisma, NestJS) — asumir que funcionan
+- No mockear la DB en integration tests — usar DB real de test (más confiable)
+
+### Nomenclatura — obligatoria
+```typescript
+describe('NombreDelServicioOComponente', () => {
+  describe('nombreDelMetodoOAccion', () => {
+    it('should [resultado esperado] when [condición]', () => {
+      // Arrange
+      // Act
+      // Assert
+    })
+  })
+})
+```
+
+### Test doubles — cuándo usar cada uno
+- **Mock**: para servicios externos (Stripe, S3, Resend, emails) — nunca queremos llamar APIs reales en tests
+- **Stub**: para retornar datos predefinidos sin lógica
+- **Spy**: para verificar que una función fue llamada (eventos, side effects)
+- **Fake**: para DB en unit tests si la real es demasiado costosa
+
+### Factories de datos de test
+- Nunca usar datos harcodeados repetidos — crear factory functions:
+```typescript
+function createUser(overrides = {}) {
+  return {
+    id: 'user-test-1',
+    email: 'test@example.com',
+    passwordHash: 'hashed',
+    ...overrides,
+  }
+}
+```
+
+---
+
+## Tareas Asignadas — FASE 0 (Activa)
+
+> El QA Engineer configura el framework de testing que usarán todos los demás agentes.
+
+### Tarea QA-01 — Configurar Jest en apps/api
+**Prioridad**: CRÍTICA
+**Criterio de Done**: `pnpm test` en `apps/api` corre y pasa (aunque no haya tests aún, el framework funciona)
+**Archivos a crear/verificar**:
+- `apps/api/jest.config.ts`
+- `apps/api/test/jest-e2e.json`
+**Configuración base**:
+```typescript
+// jest.config.ts
+export default {
+  moduleFileExtensions: ['js', 'json', 'ts'],
+  rootDir: 'src',
+  testRegex: '.*\\.spec\\.ts$',
+  transform: { '^.+\\.(t|j)s$': 'ts-jest' },
+  collectCoverageFrom: ['**/*.(t|j)s'],
+  coverageDirectory: '../coverage',
+  testEnvironment: 'node',
+  coverageThreshold: {
+    global: { branches: 70, functions: 80, lines: 80, statements: 80 },
+  },
+}
+```
+
+### Tarea QA-02 — Configurar Vitest en apps/admin y apps/builder
+**Prioridad**: ALTA
+**Criterio de Done**: `pnpm test` en `apps/admin` y `apps/builder` corre sin errores
+**Archivos**: `vitest.config.ts` en cada app
+
+### Tarea QA-03 — Configurar Playwright en la raíz
+**Prioridad**: ALTA
+**Criterio de Done**: `pnpm test:e2e` corre el ejemplo de Playwright sin errores (con el browser instalado)
+**Archivo**: `playwright.config.ts` en la raíz
+**Incluir**: configuración de baseURL para cada app, reportes HTML, screenshots en fallo
+
+### Tarea QA-04 — Crear test de humo (smoke test) del health endpoint
+**Prioridad**: MEDIA
+**Criterio de Done**: Un test de integración verifica que `GET /api/v1/health` retorna 200
+**Depende de**: QA-01, API-03 (health endpoint)
+**Por qué**: Este test sirve como "canary" — si falla, algo fundamental está roto
+
+### Tarea QA-05 — Definir y documentar datos de test
+**Prioridad**: MEDIA
+**Criterio de Done**: Existe un archivo `apps/api/test/factories.ts` con factories para User, Tenant, Site, Page
+**Por qué**: Todos los demás tests lo necesitarán — mejor crearlo ahora con buenas bases
+
+---
+
 ## Estado Actual
-**Fase activa**: FASE 0
-**Última actualización**: 2026-03-27
+**Fase activa**: FASE 1 — MVP
+**Última actualización**: 2026-04-15
+**Completado en FASE 0**: QA-01, QA-02, QA-03, QA-04, QA-05
+**Completado en FASE 1 (parcial)**: Unit tests auth/sites/pages/tenants (60 tests), integration tests auth (9 tests), E2E Flujo 5 tenant isolation (6 tests — requiere API activa)
+**Próxima tarea**: Integration tests de sites y pages endpoints, CI pipeline

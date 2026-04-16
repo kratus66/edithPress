@@ -159,10 +159,10 @@
 - [x] Arquitectura del builder definida
 - [x] Bloques del MVP identificados
 - [x] JSON schema del contenido definido
-- [ ] apps/builder inicializado (Next.js)
-- [ ] Puck instalado y configurado
-- [ ] Layout del builder creado (toolbar + paneles)
-- [ ] Al menos 1 bloque funcional (HeroBlock)
+- [x] apps/builder inicializado (Next.js)
+- [x] Puck instalado y configurado
+- [x] Layout del builder creado (toolbar + paneles)
+- [x] Al menos 1 bloque funcional (HeroBlock)
 
 ### FASE 1 — MVP
 - [ ] 8 bloques básicos implementados (ver lista arriba)
@@ -194,6 +194,98 @@
 
 ---
 
+## Buenas Prácticas del Page Builder
+
+### Arquitectura del editor
+- **Separar el estado del editor de la persistencia**: Puck maneja el estado interno del canvas; la API maneja la persistencia. Nunca acoplarlos directamente.
+- **El JSON del contenido es el contrato**: la estructura `{ type, props }` definida en el schema es inmutable una vez en producción. Cambios al schema requieren migración de datos.
+- **Cada bloque es independiente**: un bloque no conoce a los demás. No hay comunicación directa entre bloques.
+- Los bloques del builder y del renderer comparten el mismo contrato de `props` — si cambia uno, cambia el otro.
+
+### Estado y sincronización
+- **Auto-save con debounce**: no guardar en cada keystroke. Guardar 3 segundos después del último cambio (`useDebounce`).
+- **Optimistic updates**: mostrar el cambio inmediatamente, revertir si la API falla.
+- **Indicador visual de estado**: el usuario siempre sabe si hay cambios sin guardar ("Modificado"), guardando ("Guardando..."), o guardado ("Guardado hace 2s").
+- El stack de undo/redo se mantiene en memoria (Zustand) — máximo 50 pasos para no consumir memoria.
+
+### Performance del editor
+- Los bloques usan `React.memo` para evitar re-renders innecesarios al editar otro bloque
+- El canvas no usa `overflow: hidden` — puede causar problemas con elementos posicionados del builder
+- Las imágenes en el canvas se sirven a resolución reducida (preview) — la resolución completa va al renderer
+- `dynamic(() => import('./HeavyBlock'))` para bloques que cargan librerías pesadas (mapas, video)
+
+### UX del editor — reglas obligatorias
+- El usuario nunca pierde trabajo: guardar antes de cerrar/salir (`beforeunload` event)
+- Confirmación antes de publicar si hay cambios sin guardar
+- Feedback inmediato en toda acción: drag start, drop, property change, save, publish
+- Estados de error claros: "No se pudo guardar. Reintentando..." con botón de reintento manual
+
+---
+
+## Tareas Asignadas — FASE 0 (Activa)
+
+> Depende de: ARCH-01/02 (monorepo), packages/ui (Agente 12)
+
+### Tarea BUILDER-01 — Inicializar apps/builder con Next.js
+**Prioridad**: CRÍTICA
+**Criterio de Done**: `pnpm dev` en `apps/builder` levanta en puerto 3002 sin errores
+**Pasos**:
+1. Verificar dependencias en `package.json`
+2. Crear `apps/builder/next.config.js`
+3. Crear `apps/builder/src/app/layout.tsx`
+4. Crear `apps/builder/src/app/page.tsx` — placeholder "Builder Coming Soon"
+
+### Tarea BUILDER-02 — Instalar y configurar Puck
+**Prioridad**: CRÍTICA
+**Criterio de Done**: Un canvas de Puck se renderiza en la pantalla con al menos 1 bloque de prueba
+**Pasos**:
+1. Instalar `@measured/puck`
+2. Crear `apps/builder/src/lib/puck-config.ts` con la configuración inicial:
+```typescript
+import type { Config } from '@measured/puck'
+
+// Registro de todos los bloques disponibles
+export const puckConfig: Config = {
+  components: {
+    HeroBlock: {
+      label: 'Hero',
+      fields: {
+        title: { type: 'text', label: 'Título' },
+        subtitle: { type: 'text', label: 'Subtítulo' },
+        backgroundColor: { type: 'text', label: 'Color de fondo' },
+      },
+      defaultProps: {
+        title: 'Título de la página',
+        subtitle: 'Subtítulo aquí',
+        backgroundColor: '#1a1a2e',
+      },
+      render: ({ title, subtitle, backgroundColor }) => (
+        <div style={{ backgroundColor, padding: '80px 40px', textAlign: 'center' }}>
+          <h1>{title}</h1>
+          <p>{subtitle}</p>
+        </div>
+      ),
+    },
+    // ... más bloques se agregan aquí
+  },
+}
+```
+
+### Tarea BUILDER-03 — Crear layout del editor
+**Prioridad**: ALTA
+**Criterio de Done**: El layout con toolbar + panel izquierdo + canvas + panel derecho se ve en pantalla (aunque vacío)
+**Archivo**: `apps/builder/src/app/builder/[siteId]/[pageId]/page.tsx`
+**Referencia visual**: Ver wireframe ASCII en sección "UI del Editor" de este archivo
+
+### Tarea BUILDER-04 — Implementar HeroBlock completo
+**Prioridad**: ALTA
+**Criterio de Done**: Se puede arrastrar el HeroBlock al canvas, editar sus propiedades desde el panel derecho, y el canvas actualiza en tiempo real
+**Depende de**: BUILDER-02
+
+---
+
 ## Estado Actual
 **Fase activa**: FASE 0
-**Última actualización**: 2026-03-27
+**Última actualización**: 2026-04-14
+**Completadas**: BUILDER-01, BUILDER-02, BUILDER-03, BUILDER-04
+**Próxima tarea**: BUILDER-05 (FASE 1) — Completar los 8 bloques del MVP (GalleryBlock, ContactFormBlock, CardGridBlock)
