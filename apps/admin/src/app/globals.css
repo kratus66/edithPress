@@ -1,0 +1,57 @@
+/*
+ * globals.css — Entry point de estilos para apps/admin
+ *
+ * Orden de imports:
+ * 1. Tokens del design system (colores, tipografía, espaciado)
+ * 2. Directivas Tailwind
+ * 3. Overrides globales mínimos de la app
+ */
+
+/* 1. Design system tokens — fuente de verdad para todas las variables CSS */
+@import '@edithpress/ui/src/styles/tokens.css';
+
+/* 2. Tailwind */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 3. Overrides globales del admin */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--color-bg-secondary);
+    color: var(--color-gray-900);
+    font-family: var(--font-sans);
+  }
+
+  /* Focus ring accesible y consistente */
+  :focus-visible {
+    outline: 2px solid var(--color-primary-600);
+    outline-offset: 2px;
+  }
+
+  /* Scrollbar sutil (webkit) */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--color-gray-200);
+    border-radius: var(--radius-full);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-gray-500);
+  }
+}
