@@ -27,5 +27,18 @@
     "node": ">=20.0.0",
     "pnpm": ">=9.0.0"
   },
-  "packageManager": "pnpm@9.0.0"
+  "packageManager": "pnpm@9.0.0",
+  "pnpm": {
+    "overrides": {
+      "multer": ">=2.1.1",
+      "js-yaml": ">=4.1.1",
+      "glob": ">=10.5.0",
+      "picomatch": ">=4.0.4",
+      "ajv": ">=8.18.0",
+      "tmp": ">=0.2.4",
+      "webpack": ">=5.104.1",
+      "lodash": ">=4.18.1",
+      "esbuild": ">=0.25.0"
+    }
+  }
 }

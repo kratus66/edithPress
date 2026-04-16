@@ -171,7 +171,7 @@ Permissions-Policy: camera=(), microphone=(), geolocation=()
 - [ ] DOMPurify instalado y usado en content saving
 - [ ] Verificación de webhook Stripe
 - [ ] Tests de autorización (tenant isolation)
-- [ ] npm audit sin vulnerabilidades críticas
+- [x] npm audit — 30→15 vulnerabilidades (multer, lodash, js-yaml, glob, picomatch, ajv, webpack, tmp, esbuild parchadas; 15 deferred con justificación en docs/security-checklist.md)
 
 ### FASE 2 — v1
 - [ ] Penetration testing básico (OWASP ZAP)
@@ -274,5 +274,5 @@ Permissions-Policy: camera=(), microphone=(), geolocation=()
 
 ## Estado Actual
 **Fase activa**: FASE 0
-**Última actualización**: 2026-04-13
-**Próxima tarea**: SEC-04 — Revisar configuración de bcrypt en AuthService (FASE 1, ya verificado en código)
+**Última actualización**: 2026-04-15
+**Próxima tarea**: Auditoría de seguridad del módulo auth (FASE 1), DOMPurify en content saving, verificación webhook Stripe

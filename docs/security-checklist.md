@@ -26,10 +26,25 @@
 
 ## General
 
-- [ ] `npm audit` / `pnpm audit` sin vulnerabilidades **críticas** ni **altas**
+- [ ] `pnpm audit` sin vulnerabilidades **críticas** ni **altas** no justificadas (ver tabla de excepciones abajo)
 - [ ] No hay archivos `.env`, `*.key`, `*.pem`, `*.p12` ni credenciales commitados (verificar con `git status`)
 - [ ] No hay comentarios `TODO`, `FIXME` o `HACK` relacionados con seguridad sin issue abierto
 - [ ] El PR no expone stack traces ni mensajes de error detallados en respuestas de producción
+
+---
+
+## Vulnerabilidades conocidas y justificadas (2026-04-15)
+
+Las siguientes vulnerabilidades están registradas, analizadas y aceptadas hasta que su fix esté disponible sin breaking changes.
+Revisión obligatoria en cada release.
+
+| Paquete | Sev | CVE / Advisory | Motivo de no fix | Acción |
+|---------|-----|----------------|------------------|--------|
+| `next@14.2.35` | HIGH×2 + MOD×3 | GHSA-h25m, GHSA-q4gf, GHSA-9g9p, GHSA-ggv3, GHSA-3x4c | Fix requiere Next.js 15 (breaking API) | Planificado en FASE 2 — migración Next 14→15 |
+| `tar@6.2.1` | HIGH×6 | GHSA-34x7, GHSA-8qq5, GHSA-83g3, GHSA-qffp, GHSA-9ppj, GHSA-r6q2 | Dependencia transitiva de `bcrypt→@mapbox/node-pre-gyp`. Solo se usa en `npm install`, **no en runtime**. Override a tar@7 rompe la compilación nativa de bcrypt. | Aceptado. Mitigación: verificar integridad del package-lock; usar `--ignore-scripts` en builds CI cuando el binario ya está compilado. |
+| `file-type@20.4.1` | MOD×2 | GHSA-5v7r, GHSA-j47w | Fix requiere file-type@21 (major). Override rompería `@nestjs/common@10` internamente. | Deferred hasta NestJS v11 upgrade (FASE 2). Mitigación: limitar tamaño de archivos en upload a 10 MB, validar extension en DTO. |
+| `@nestjs/core@10.4.22` | MOD | GHSA-36xv | Fix requiere NestJS v11 (breaking). | Planificado con upgrade completo de NestJS en FASE 2. |
+| `vite@5.4.21` | MOD | GHSA-4w7w | Dev server, no impacta producción. Fix requiere vite v6 (breaking). | Aceptado para entorno dev. No afecta build de producción. |
 
 ---
 
