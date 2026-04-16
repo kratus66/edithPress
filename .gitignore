@@ -1,45 +1,146 @@
+# ============================================================
+# EdithPress — .gitignore
+# ============================================================
+
+# ------------------------------------------------------------
 # Dependencies
-node_modules
-.pnpm-store
+# ------------------------------------------------------------
+node_modules/
+.pnpm-store/
 
+# ------------------------------------------------------------
 # Build outputs
-dist
-.next
-.turbo
-out
-build
+# ------------------------------------------------------------
+dist/
+build/
+out/
+.next/
+.cache/
 
-# Environment variables
+# TypeScript incremental compilation
+*.tsbuildinfo
+
+# Turbo
+.turbo/
+
+# ------------------------------------------------------------
+# Environment variables — CRITICAL: NEVER commit secrets
+# ------------------------------------------------------------
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+.env.staging
 
+# .env.example IS intentionally committed (documents the contract)
+!.env.example
+
+# ------------------------------------------------------------
+# Prisma
+# ------------------------------------------------------------
+# Generated client (rebuilt via `pnpm db:generate`)
+packages/database/src/generated/
+packages/database/prisma/generated/
+
+# ------------------------------------------------------------
 # Logs
+# ------------------------------------------------------------
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
+logs/
 
-# OS
+# ------------------------------------------------------------
+# Testing
+# ------------------------------------------------------------
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+blob-report/
+
+# ------------------------------------------------------------
+# OS artifacts
+# ------------------------------------------------------------
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# IDE
+# ------------------------------------------------------------
+# IDE / Editor
+# ------------------------------------------------------------
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
-.idea
+!.vscode/launch.json
+.idea/
 *.swp
 *.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
 
-# Testing
-coverage
-playwright-report
-test-results
+# ------------------------------------------------------------
+# Docker (local volume data — never commit DB/storage state)
+# ------------------------------------------------------------
+infrastructure/docker/volumes/
+docker/volumes/
+data/
 
-# Prisma
-prisma/generated
-
-# Uploads (local dev)
+# ------------------------------------------------------------
+# Local dev uploads (MinIO / local storage)
+# ------------------------------------------------------------
 uploads/
+tmp/
+
+# ------------------------------------------------------------
+# Package manager
+# Note: pnpm-lock.yaml IS committed for reproducible installs
+# ------------------------------------------------------------
+# (nothing to ignore here — keep the lockfile)
+
+# ------------------------------------------------------------
+# Storybook
+# ------------------------------------------------------------
+packages/ui/storybook-static/
+
+# ------------------------------------------------------------
+# Security — CRITICAL: NEVER commit keys, certs, or secrets
+# ------------------------------------------------------------
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cert
+*.der
+*.keystore
+*.jks
+secrets/
+credentials.json
+service-account*.json
+*-service-account.json
+
+# ------------------------------------------------------------
+# Claude Code (memory, settings, worktrees — local only)
+# ------------------------------------------------------------
+.claude/
+
+# ------------------------------------------------------------
+# Misc
+# ------------------------------------------------------------
+*.orig
+*.rej
+.eslintcache
+.stylelintcache
