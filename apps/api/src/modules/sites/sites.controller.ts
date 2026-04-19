@@ -102,6 +102,7 @@ export class SitesController {
   // ─────────────────────────────── POST /sites/:siteId/publish ──
 
   @Post(':siteId/publish')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(RolesGuard)
   @Roles('OWNER', 'EDITOR')
   @ApiOperation({ summary: 'Publicar un sitio' })

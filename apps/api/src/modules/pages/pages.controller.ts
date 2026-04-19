@@ -109,6 +109,7 @@ export class PagesController {
   // ──────────── POST /sites/:siteId/pages/:pageId/publish ──
 
   @Post(':pageId/publish')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(RolesGuard)
   @Roles('OWNER', 'EDITOR')
   @ApiOperation({ summary: 'Publicar una página' })

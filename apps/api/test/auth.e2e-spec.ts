@@ -1,4 +1,4 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common'
+import { INestApplication, ValidationPipe, Global, Module } from '@nestjs/common'
 import { Test, TestingModule } from '@nestjs/testing'
 import { ConfigModule } from '@nestjs/config'
 import { ThrottlerModule } from '@nestjs/throttler'
@@ -10,7 +10,33 @@ const request: typeof import('supertest') = require('supertest')
 const cookieParser = require('cookie-parser') as typeof import('cookie-parser')
 import { AuthModule } from '../src/modules/auth/auth.module'
 import { DatabaseService } from '../src/modules/database/database.service'
+import { RedisService } from '../src/modules/redis/redis.service'
+import { REDIS_CLIENT } from '../src/modules/redis/redis.module'
 import { GlobalExceptionFilter } from '../src/common/filters/global-exception.filter'
+
+// ─── MockRedisModule ──────────────────────────────────────────────────────────
+// RedisModule es @Global() y se registra en AppModule. En tests de AuthModule
+// sin AppModule, este mock lo replica para evitar Redis real.
+
+const mockRedisClient = {
+  set: jest.fn().mockResolvedValue('OK'),
+  get: jest.fn().mockResolvedValue(null),
+  del: jest.fn().mockResolvedValue(1),
+  // exists devuelve 1 (token presente en Redis) para que el flujo de refresh funcione.
+  // En tests de logout, el token se borra vía del() y los mocks se limpian entre tests.
+  exists: jest.fn().mockResolvedValue(1),
+  ping: jest.fn().mockResolvedValue('PONG'),
+}
+
+@Global()
+@Module({
+  providers: [
+    { provide: REDIS_CLIENT, useValue: mockRedisClient },
+    RedisService,
+  ],
+  exports: [RedisService],
+})
+class MockRedisModule {}
 import {
   LOGIN_THROTTLE_LIMIT,
 } from '../src/modules/auth/constants/auth.constants'
@@ -90,6 +116,7 @@ describe('Auth endpoints (integration)', () => {
           },
         ]),
 
+        MockRedisModule,  // @Global: expone RedisService a AuthModule sin Redis real
         AuthModule,
       ],
       providers: [
@@ -230,11 +257,12 @@ describe('Auth endpoints (integration)', () => {
         ...user,
         tenantUsers: [{ tenantId: 'tenant-1', role: 'OWNER' }],
       }
-      // validateUser devuelve el usuario (contraseña correcta)
+      // validateUser devuelve el usuario (contraseña correcta y email verificado)
       mockDb.user.findUnique.mockResolvedValue({
         ...userWithTenants,
         passwordHash: validPasswordHash,  // hash real de 'Password123'
         isActive: true,
+        emailVerified: true,   // requerido: login() lanza 403 si es false
       })
       mockDb.refreshToken.create.mockResolvedValue({})
 
@@ -297,6 +325,27 @@ describe('Auth endpoints (integration)', () => {
      * son independientes por IP+ruta. En tests, todos los requests
      * comparten la misma "IP" de test.
      */
+    it('403 — should reject login when email is not verified', async () => {
+      // Arrange — usuario con contraseña correcta pero email sin verificar
+      mockDb.user.findUnique.mockResolvedValue({
+        id: 'user-unverified',
+        email: 'unverified@test.com',
+        passwordHash: validPasswordHash,
+        isActive: true,
+        emailVerified: false,   // no verificado
+        tenantUsers: [{ tenantId: 'tenant-1', role: 'OWNER' }],
+      })
+
+      // Act
+      const response = await request(httpServer)
+        .post('/api/v1/auth/login')
+        .send({ email: 'unverified@test.com', password: 'Password123' })
+        .expect(403)
+
+      // Assert
+      expect(response.body.error.code).toBe('EMAIL_NOT_VERIFIED')
+    })
+
     it(`429 — should block after ${LOGIN_THROTTLE_LIMIT} failed login attempts`, async () => {
       // Arrange — todos los intentos fallan (usuario inactivo → validateUser null)
       mockDb.user.findUnique.mockResolvedValue({
@@ -322,6 +371,111 @@ describe('Auth endpoints (integration)', () => {
 
       // Assert
       expect(response.status).toBe(429)
+    })
+  })
+
+  // ─────────────────────────────────────────────── POST /api/v1/auth/refresh ──
+
+  describe('POST /api/v1/auth/refresh', () => {
+    it('200 — should return new tokens when refresh cookie is valid', async () => {
+      // Arrange
+      mockDb.refreshToken.findUnique.mockResolvedValue({
+        id: 'rt-valid',
+        token: 'valid-refresh-token',
+        userId: 'user-1',
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 días
+        user: {
+          id: 'user-1',
+          email: 'user@test.com',
+          tenantUsers: [{ tenantId: 'tenant-1', role: 'OWNER' }],
+        },
+      })
+      mockDb.refreshToken.delete.mockResolvedValue({})
+      mockDb.refreshToken.create.mockResolvedValue({})
+
+      // Act
+      const response = await request(httpServer)
+        .post('/api/v1/auth/refresh')
+        .set('Cookie', 'refresh_token=valid-refresh-token')
+        .expect(200)
+
+      // Assert — nuevos tokens emitidos
+      expect(response.body.data.accessToken).toBeTruthy()
+      expect(response.body.data.expiresIn).toBeTruthy()
+
+      // El token antiguo fue rotado (eliminado)
+      expect(mockDb.refreshToken.delete).toHaveBeenCalledWith({
+        where: { id: 'rt-valid' },
+      })
+    })
+
+    it('401 — should reject when no refresh cookie is present', async () => {
+      // Act — sin cookie
+      const response = await request(httpServer)
+        .post('/api/v1/auth/refresh')
+        .expect(401)
+
+      // Assert
+      expect(response.body.error.code).toBe('MISSING_REFRESH_TOKEN')
+    })
+
+    it('401 — should reject when refresh token is expired', async () => {
+      // Arrange — token expirado en DB
+      mockDb.refreshToken.findUnique.mockResolvedValue({
+        id: 'rt-expired',
+        token: 'expired-token',
+        userId: 'user-1',
+        expiresAt: new Date(Date.now() - 1000), // expirado
+        user: { id: 'user-1', email: 'user@test.com', tenantUsers: [] },
+      })
+
+      // Act
+      const response = await request(httpServer)
+        .post('/api/v1/auth/refresh')
+        .set('Cookie', 'refresh_token=expired-token')
+        .expect(401)
+
+      // Assert
+      expect(response.body.error.code).toBe('INVALID_REFRESH_TOKEN')
+    })
+  })
+
+  // ─────────────────────────────────────────────── POST /api/v1/auth/logout ──
+
+  describe('POST /api/v1/auth/logout', () => {
+    it('204 — should invalidate refresh token and clear cookie', async () => {
+      // Arrange
+      mockDb.refreshToken.deleteMany.mockResolvedValue({ count: 1 })
+
+      // Act
+      const response = await request(httpServer)
+        .post('/api/v1/auth/logout')
+        .set('Cookie', 'refresh_token=some-refresh-token')
+        .expect(204)
+
+      // Assert — el token fue eliminado de la DB
+      expect(mockDb.refreshToken.deleteMany).toHaveBeenCalledWith({
+        where: { token: 'some-refresh-token' },
+      })
+
+      // La cookie fue borrada (Max-Age=0 o expires en el pasado)
+      const cookies = response.headers['set-cookie'] as string[] | undefined
+      if (cookies) {
+        const refreshCookie = cookies.find((c: string) => c.startsWith('refresh_token='))
+        if (refreshCookie) {
+          expect(refreshCookie).toMatch(/Max-Age=0|expires=.*1970/i)
+        }
+      }
+    })
+
+    it('204 — should succeed gracefully even without refresh cookie', async () => {
+      // Act — sin cookie presente: logout silencioso
+      await request(httpServer)
+        .post('/api/v1/auth/logout')
+        .expect(204)
+
+      // Sin cookie → no se llamó deleteMany
+      expect(mockDb.refreshToken.deleteMany).not.toHaveBeenCalled()
     })
   })
 })

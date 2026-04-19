@@ -1,10 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { ConflictException, UnauthorizedException } from '@nestjs/common'
+import {
+  ConflictException,
+  ForbiddenException,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import * as bcrypt from 'bcrypt'
 import { AuthService } from './auth.service'
 import { DatabaseService } from '../database/database.service'
+import { RedisService } from '../redis/redis.service'
+import { MailerService } from '../mailer/mailer.service'
 import { BCRYPT_ROUNDS } from './constants/auth.constants'
 
 /**
@@ -49,6 +56,22 @@ describe('AuthService — Security Tests', () => {
     get: jest.fn().mockReturnValue('test-jwt-secret-at-least-256-bits-long-xxxxxxxx'),
   }
 
+  // RedisService mock — añadido tras sprint de seguridad que lo inyectó en AuthService
+  const mockRedisService = {
+    set: jest.fn().mockResolvedValue(undefined),
+    get: jest.fn().mockResolvedValue(null),
+    del: jest.fn().mockResolvedValue(undefined),
+    exists: jest.fn().mockResolvedValue(1),  // 1 = token existe en Redis (válido)
+    ping: jest.fn().mockResolvedValue(true),
+  }
+
+  // MailerService mock — fire-and-forget, no necesita retornar nada
+  const mockMailerService = {
+    sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
+    sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
+    sendContactFormEmail: jest.fn().mockResolvedValue(undefined),
+  }
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -56,6 +79,8 @@ describe('AuthService — Security Tests', () => {
         { provide: DatabaseService, useValue: mockDb },
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: RedisService, useValue: mockRedisService },
+        { provide: MailerService, useValue: mockMailerService },
       ],
     }).compile()
 
@@ -235,6 +260,122 @@ describe('AuthService — Security Tests', () => {
       expect(mockDb.refreshToken.deleteMany).toHaveBeenCalledWith({
         where: { token: 'some-refresh-token' },
       })
+    })
+  })
+
+  // ──────────────────────────────────────────────────────── LOGIN() ──
+
+  describe('login()', () => {
+    it('should return tokens when user has verified email and a tenant', async () => {
+      // Arrange
+      const user = {
+        id: 'user-login-1',
+        email: 'verified@test.com',
+        emailVerified: true,
+        tenantUsers: [{ tenantId: 'tenant-1', role: 'OWNER' }],
+      }
+      mockDb.refreshToken.create.mockResolvedValue({})
+
+      // Act
+      const result = await service.login(user as never)
+
+      // Assert
+      expect(result).toHaveProperty('accessToken')
+      expect(result).toHaveProperty('refreshToken')
+      expect(result).toHaveProperty('expiresIn')
+      expect(mockJwtService.sign).toHaveBeenCalled()
+    })
+
+    it('should throw ForbiddenException when emailVerified is false', async () => {
+      // Arrange — usuario que no verificó su email
+      const user = {
+        id: 'user-unverified-1',
+        email: 'unverified@test.com',
+        emailVerified: false,
+        tenantUsers: [{ tenantId: 'tenant-1', role: 'OWNER' }],
+      }
+
+      // Act & Assert
+      await expect(service.login(user as never)).rejects.toThrow(ForbiddenException)
+    })
+
+    it('should throw InternalServerErrorException when user has no tenant assigned', async () => {
+      // Arrange — usuario verificado pero sin tenants (estado inconsistente)
+      const user = {
+        id: 'user-no-tenant',
+        email: 'notenant@test.com',
+        emailVerified: true,
+        tenantUsers: [],
+      }
+
+      // Act & Assert
+      await expect(service.login(user as never)).rejects.toThrow(InternalServerErrorException)
+    })
+  })
+
+  // ──────────────────────────────── REGISTER: EMAIL VERIFICATION TOKEN ──
+
+  describe('register() — email verification token', () => {
+    it('should generate email verification token after successful registration', async () => {
+      // Arrange
+      mockDb.user.findUnique.mockResolvedValue(null)
+      mockDb.plan.findUniqueOrThrow.mockResolvedValue({ id: 'plan-starter' })
+      mockDb.tenant.findUnique.mockResolvedValue(null)
+      mockDb.user.create.mockResolvedValue({
+        id: 'user-new-1',
+        email: 'newuser@test.com',
+        tenantUsers: [],
+      })
+      mockDb.tenant.create.mockResolvedValue({ id: 'tenant-new-1' })
+      mockDb.tenantUser.create.mockResolvedValue({})
+      mockDb.refreshToken.create.mockResolvedValue({})
+
+      const tokenSpy = jest.spyOn(service, 'generateEmailVerificationToken')
+
+      // Act
+      await service.register({ email: 'newuser@test.com', password: 'Password123' })
+
+      // Assert — se generó el token de verificación con el userId y email correctos
+      expect(tokenSpy).toHaveBeenCalledWith(
+        'user-new-1',       // userId retornado por user.create
+        'newuser@test.com', // email del usuario
+      )
+    })
+
+    it('should create user + tenant + tenantUser in a single transaction', async () => {
+      // Arrange
+      mockDb.user.findUnique.mockResolvedValue(null)
+      mockDb.plan.findUniqueOrThrow.mockResolvedValue({ id: 'plan-starter' })
+      mockDb.tenant.findUnique.mockResolvedValue(null)
+      mockDb.user.create.mockResolvedValue({
+        id: 'user-tx-1',
+        email: 'txuser@test.com',
+        tenantUsers: [],
+      })
+      mockDb.tenant.create.mockResolvedValue({ id: 'tenant-tx-1' })
+      mockDb.tenantUser.create.mockResolvedValue({})
+      mockDb.refreshToken.create.mockResolvedValue({})
+
+      // Act
+      await service.register({ email: 'txuser@test.com', password: 'Password123', firstName: 'Test' })
+
+      // Assert — los tres recursos se crearon en la misma transacción ($transaction fue llamado)
+      expect(mockDb.$transaction).toHaveBeenCalled()
+      expect(mockDb.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ email: 'txuser@test.com' }),
+        }),
+      )
+      expect(mockDb.tenant.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ planId: 'plan-starter' }),
+        }),
+      )
+      expect(mockDb.tenantUser.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ role: 'OWNER' }),
+        }),
+      )
     })
   })
 })
