@@ -2,6 +2,7 @@ import { headers, draftMode } from 'next/headers'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { BlockRenderer, type Block } from '../_components/BlockRenderer'
+import { PageViewTracker } from '../_components/PageViewTracker'
 
 // ── Tipos de la API ────────────────────────────────────────────────────────────
 
@@ -92,6 +93,36 @@ async function fetchPage(
   }
 }
 
+// ── generateMetadata helpers ───────────────────────────────────────────────────
+
+/**
+ * Extrae la URL de la primera imagen encontrada en el contenido de la página.
+ * Recorre los bloques en orden y devuelve la primera `src` o `image` que encuentre.
+ */
+function extractFirstImage(blocks: Block[]): string | undefined {
+  for (const block of blocks) {
+    const props = block.props as Record<string, unknown> | undefined
+    if (!props) continue
+
+    // ImageBlock: { src: string }
+    if (typeof props.src === 'string' && props.src) return props.src
+    // HeroBlock o CardGridBlock: { image: string }
+    if (typeof props.image === 'string' && props.image) return props.image
+    // GalleryBlock: { images: [{ src }] }
+    if (Array.isArray(props.images)) {
+      const first = (props.images as Array<{ src?: string }>)[0]
+      if (first?.src) return first.src
+    }
+    // CardGridBlock: { cards: [{ image }] }
+    if (Array.isArray(props.cards)) {
+      for (const card of props.cards as Array<{ image?: string }>) {
+        if (card.image) return card.image
+      }
+    }
+  }
+  return undefined
+}
+
 // ── generateMetadata ───────────────────────────────────────────────────────────
 
 export async function generateMetadata({
@@ -117,6 +148,13 @@ export async function generateMetadata({
     : `https://${tenantSlug}.edithpress.com`
 
   const pageUrl = pageSlug ? `${baseUrl}/${pageSlug}` : baseUrl
+  const isHome = !pageSlug || pageSlug === 'home'
+
+  // Prioridad de imagen OG: ogImage explícito → primera imagen del contenido → defaultOgImage del site
+  const ogImageUrl =
+    page.ogImage ??
+    extractFirstImage(page.content) ??
+    site.defaultOgImage
 
   return {
     title: page.metaTitle ?? `${page.title} | ${site.name}`,
@@ -124,12 +162,21 @@ export async function generateMetadata({
     openGraph: {
       title: page.metaTitle ?? page.title,
       description: page.metaDesc ?? undefined,
-      images: page.ogImage ?? site.defaultOgImage
-        ? [{ url: (page.ogImage ?? site.defaultOgImage) as string }]
-        : undefined,
+      images: ogImageUrl ? [{ url: ogImageUrl }] : undefined,
       url: pageUrl,
       siteName: site.name,
-      type: 'website',
+      // homepage → website; páginas internas → article
+      type: isHome ? 'website' : 'article',
+      ...((!isHome && page.publishedAt) && {
+        publishedTime: page.publishedAt,
+        modifiedTime: page.updatedAt,
+      }),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: page.metaTitle ?? page.title,
+      description: page.metaDesc ?? undefined,
+      images: ogImageUrl ? [ogImageUrl] : undefined,
     },
     alternates: {
       canonical: page.canonicalUrl ?? pageUrl,
@@ -242,6 +289,9 @@ export default async function TenantPage({
     notFound()
   }
 
+  // La ruta actual para analytics (ej: "/" o "/sobre-nosotros")
+  const currentPath = pageSlug ? `/${pageSlug}` : '/'
+
   return (
     <>
       <SiteNav site={site} currentSlug={pageSlug || 'home'} />
@@ -255,6 +305,11 @@ export default async function TenantPage({
       </footer>
 
       {isDraft && <DraftBanner />}
+
+      {/* Analytics — client-side para capturar referrer y no bloquear ISR */}
+      {!isDraft && (
+        <PageViewTracker siteId={site.id} path={currentPath} />
+      )}
     </>
   )
 }

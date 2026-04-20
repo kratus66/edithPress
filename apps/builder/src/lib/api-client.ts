@@ -69,4 +69,11 @@ export const builderApi = {
       headers: authHeaders(),
       body: body !== undefined ? JSON.stringify(body) : undefined,
     }).then((res) => parseResponse<T>(res)),
+
+  patch: <T>(path: string, body: unknown): Promise<T> =>
+    fetch(`${BASE_URL}/api/v1${path}`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify(body),
+    }).then((res) => parseResponse<T>(res)),
 }

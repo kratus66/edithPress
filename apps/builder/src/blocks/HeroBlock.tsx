@@ -5,6 +5,7 @@ export interface HeroBlockProps {
   title: string
   subtitle: string
   backgroundColor: string
+  backgroundImage: string
   textColor: string
   ctaText: string
   ctaUrl: string
@@ -23,6 +24,7 @@ export const heroBlockFields: Fields<HeroBlockProps> = {
   title: { type: 'text', label: 'Título (H1)' },
   subtitle: { type: 'text', label: 'Subtítulo' },
   backgroundColor: { type: 'text', label: 'Color de fondo (hex)' },
+  backgroundImage: { type: 'text', label: 'URL imagen de fondo (opcional)' },
   textColor: { type: 'text', label: 'Color del texto (hex)' },
   ctaText: { type: 'text', label: 'Texto del botón CTA' },
   ctaUrl: { type: 'text', label: 'URL del botón CTA' },
@@ -51,6 +53,7 @@ export const heroBlockDefaultProps: HeroBlockProps = {
   title: 'Bienvenido a mi negocio',
   subtitle: 'Ofrecemos los mejores servicios de la región',
   backgroundColor: '#1a1a2e',
+  backgroundImage: '',
   textColor: '#ffffff',
   ctaText: 'Contáctanos',
   ctaUrl: '/contacto',
@@ -62,6 +65,7 @@ export function HeroBlock({
   title,
   subtitle,
   backgroundColor,
+  backgroundImage,
   textColor,
   ctaText,
   ctaUrl,
@@ -70,6 +74,17 @@ export function HeroBlock({
 }: HeroBlockProps) {
   const padding = paddingMap[paddingY]
 
+  const bgStyle: React.CSSProperties = backgroundImage
+    ? {
+        backgroundImage: `url(${backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        // Overlay oscuro para legibilidad del texto sobre la imagen
+        position: 'relative',
+      }
+    : {}
+
   return (
     <section
       style={{
@@ -77,6 +92,7 @@ export function HeroBlock({
         color: textColor,
         padding: `${padding} 40px`,
         textAlign,
+        ...bgStyle,
       }}
     >
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>

@@ -24,9 +24,10 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  tenantUsers   TenantUser[]
-  refreshTokens RefreshToken[]
-  auditLogs     AuditLog[]
+  tenantUsers        TenantUser[]
+  refreshTokens      RefreshToken[]
+  auditLogs          AuditLog[]
+  passwordResetTokens PasswordResetToken[]
 
   @@index([email])
 }
@@ -44,6 +45,20 @@ model RefreshToken {
   @@index([userId])
 }
 
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique  // SHA-256 del token aleatorio enviado al email
+  expiresAt DateTime
+  usedAt    DateTime?           // null = no usado; non-null = ya consumido
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@index([userId])
+}
+
 // ==================== TENANTS ====================
 
 model Tenant {
@@ -56,12 +71,12 @@ model Tenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  plan         Plan          @relation(fields: [planId], references: [id])
-  tenantUsers  TenantUser[]
-  sites        Site[]
-  subscription Subscription?
-  domains      Domain[]
-  mediaFiles   MediaFile[]
+  plan          Plan           @relation(fields: [planId], references: [id])
+  tenantUsers   TenantUser[]
+  sites         Site[]
+  subscription  Subscription?
+  customDomains CustomDomain[]
+  mediaFiles    MediaFile[]
 
   @@index([slug])
 }
@@ -101,9 +116,11 @@ model Site {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  pages    Page[]
-  template Template? @relation(fields: [templateId], references: [id])
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pages        Page[]
+  template     Template?     @relation(fields: [templateId], references: [id])
+  customDomain CustomDomain?
+  pageViews    PageView[]
 
   @@index([tenantId])
 }
@@ -153,24 +170,28 @@ enum PageStatus {
 // ==================== TEMPLATES ====================
 
 model Template {
-  id           String   @id @default(cuid())
-  name         String
-  description  String?
-  previewUrl   String?
-  thumbnailUrl String?
-  content      Json     // Estructura de páginas del template
-  category     String
-  tags         String[]
-  isPremium    Boolean  @default(false)
-  price        Decimal? @db.Decimal(10, 2)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  previewUrl      String?
+  thumbnailUrl    String?
+  previewImageUrl String?  // alias canónico para el marketplace
+  content         Json     // Estructura de páginas del template
+  category        String
+  tags            String[]
+  isPremium       Boolean  @default(false)
+  price           Decimal? @db.Decimal(10, 2)
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  usageCount      Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   sites Site[]
 
   @@index([category])
   @@index([isPremium])
+  @@index([sortOrder])
 }
 
 // ==================== BILLING ====================
@@ -244,28 +265,49 @@ enum InvoiceStatus {
   UNCOLLECTIBLE
 }
 
-// ==================== DOMINIOS ====================
+// ==================== CUSTOM DOMAINS ====================
 
-model Domain {
-  id         String       @id @default(cuid())
+model CustomDomain {
+  id         String             @id @default(cuid())
   tenantId   String
-  domain     String       @unique
-  status     DomainStatus @default(PENDING)
+  siteId     String             @unique
+  domain     String             @unique
+  status     CustomDomainStatus @default(PENDING)
   verifiedAt DateTime?
-  sslStatus  String?
-  createdAt  DateTime     @default(now())
+  txtRecord  String             // token TXT para verificación DNS
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  site   Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([domain])
 }
 
-enum DomainStatus {
+enum CustomDomainStatus {
   PENDING
-  VERIFIED
-  FAILED
+  VERIFYING
   ACTIVE
+  FAILED
+}
+
+// ==================== ANALYTICS ====================
+
+model PageView {
+  id        String   @id @default(cuid())
+  siteId    String
+  pageId    String?
+  path      String
+  referrer  String?
+  userAgent String?
+  country   String?
+  createdAt DateTime @default(now())
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, createdAt])
+  @@index([siteId, path])
 }
 
 // ==================== MEDIA ====================

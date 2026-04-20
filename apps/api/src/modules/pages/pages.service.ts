@@ -268,11 +268,11 @@ export class PagesService {
 
     await this.db.$transaction([
       this.db.pageVersion.create({
-        data: { pageId, content: current!.content, createdBy: userId },
+        data: { pageId, content: current!.content as object, createdBy: userId },
       }),
       this.db.page.update({
         where: { id: pageId },
-        data: { content: version.content, status: 'DRAFT' },
+        data: { content: version.content as object, status: 'DRAFT' },
       }),
     ])
 

@@ -3,10 +3,11 @@ import { TextBlock, type TextBlockProps } from './blocks/TextBlock'
 import { ImageBlock, type ImageBlockProps } from './blocks/ImageBlock'
 import { ButtonBlock, type ButtonBlockProps } from './blocks/ButtonBlock'
 import { SeparatorBlock, type SeparatorBlockProps } from './blocks/SeparatorBlock'
-// FASE 1 — pendientes de implementación en el builder
 import { GalleryBlock, type GalleryBlockProps } from './blocks/GalleryBlock'
 import { ContactFormBlock, type ContactFormBlockProps } from './blocks/ContactFormBlock'
 import { CardGridBlock, type CardGridBlockProps } from './blocks/CardGridBlock'
+import { VideoBlock, type VideoBlockProps } from './blocks/VideoBlock'
+import { PricingBlock, type PricingBlockProps } from './blocks/PricingBlock'
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
@@ -26,6 +27,8 @@ export type Block =
   | { type: 'GalleryBlock'; props: GalleryBlockProps }
   | { type: 'ContactFormBlock'; props: ContactFormBlockProps }
   | { type: 'CardGridBlock'; props: CardGridBlockProps }
+  | { type: 'VideoBlock'; props: VideoBlockProps }
+  | { type: 'PricingBlock'; props: PricingBlockProps }
 
 // ── Switch tipado tipo → componente ───────────────────────────────────────────
 
@@ -59,6 +62,12 @@ function renderBlock(block: Block, index: number): React.ReactNode {
 
     case 'CardGridBlock':
       return <CardGridBlock key={index} {...block.props} />
+
+    case 'VideoBlock':
+      return <VideoBlock key={index} {...block.props} />
+
+    case 'PricingBlock':
+      return <PricingBlock key={index} {...block.props} />
 
     default: {
       // TypeScript debería prevenir esta rama con exhaustive check,

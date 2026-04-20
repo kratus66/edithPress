@@ -1,27 +1,24 @@
+import { headers } from 'next/headers'
 import type { MetadataRoute } from 'next'
 
 /**
- * sitemap.ts — Generación dinámica del sitemap del tenant
+ * sitemap.ts — Sitemap dinámico por tenant
  *
- * ARQUITECTURA MULTI-TENANT:
- * En un despliegue multi-tenant (un renderer para todos los tenants),
- * el sitemap se genera por petición — Next.js la trata como una ruta
- * dinámica. El tenant se identifica via la variable de entorno TENANT_SLUG
- * (establecida en el contenedor/proceso de cada tenant) o via el host.
+ * El tenant se identifica via el header X-Tenant-Slug inyectado por el middleware
+ * (basado en el subdominio o dominio personalizado).
  *
- * La API expone GET /api/v1/renderer/tenant/{slug}/pages (solo publicadas)
- * que devuelve { slug, updatedAt } de cada página — lo mínimo para el sitemap.
+ * La API expone GET /api/v1/renderer/tenant/{slug}/pages (solo páginas PUBLISHED)
+ * que devuelve { slug, updatedAt, isHomepage } — lo mínimo para el sitemap.
  *
- * Revalidación: el sitemap se regenera cuando se publica una página
- * (on-demand revalidation desde la API vía revalidatePath('/sitemap.xml')).
+ * Revalidación: 1 hora de ISR + on-demand revalidation desde la API al publicar.
  */
 
 const API_BASE = process.env.API_INTERNAL_URL ?? 'http://localhost:3001'
-const TENANT_SLUG = process.env.TENANT_SLUG ?? ''
 
 interface PageEntry {
   slug: string
   updatedAt: string
+  isHomepage: boolean
 }
 
 interface SiteConfig {
@@ -31,15 +28,18 @@ interface SiteConfig {
 export const revalidate = 3600
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  if (!TENANT_SLUG) return []
+  const headersList = headers()
+  const tenantSlug = headersList.get('x-tenant-slug') ?? process.env.TENANT_SLUG ?? ''
+
+  if (!tenantSlug) return []
 
   try {
     const [pagesRes, siteRes] = await Promise.all([
-      fetch(`${API_BASE}/api/v1/renderer/tenant/${TENANT_SLUG}/pages`, {
+      fetch(`${API_BASE}/api/v1/renderer/tenant/${tenantSlug}/pages`, {
         next: { revalidate: 3600 },
         headers: { 'x-renderer-secret': process.env.RENDERER_SECRET ?? '' },
       }),
-      fetch(`${API_BASE}/api/v1/renderer/tenant/${TENANT_SLUG}`, {
+      fetch(`${API_BASE}/api/v1/renderer/tenant/${tenantSlug}`, {
         next: { revalidate: 3600 },
         headers: { 'x-renderer-secret': process.env.RENDERER_SECRET ?? '' },
       }),
@@ -52,13 +52,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const baseUrl = site.domain
       ? `https://${site.domain}`
-      : `https://${TENANT_SLUG}.edithpress.com`
+      : `https://${tenantSlug}.edithpress.com`
 
     return pages.map((page) => ({
-      url: page.slug === 'home' ? baseUrl : `${baseUrl}/${page.slug}`,
+      url: page.isHomepage || page.slug === 'home' ? baseUrl : `${baseUrl}/${page.slug}`,
       lastModified: new Date(page.updatedAt),
-      changeFrequency: 'weekly' as const,
-      priority: page.slug === 'home' ? 1.0 : 0.8,
+      changeFrequency: page.isHomepage || page.slug === 'home' ? 'weekly' as const : 'monthly' as const,
+      priority: page.isHomepage || page.slug === 'home' ? 1.0 : 0.8,
     }))
   } catch {
     return []

@@ -27,6 +27,33 @@ export class BillingService {
     })
   }
 
+  // ────────────────────────────────────── PLANS (público) ──
+
+  /**
+   * Lista todos los planes activos ordenados por precio mensual ascendente.
+   * Endpoint público — no requiere autenticación.
+   */
+  async getPlans() {
+    return this.db.plan.findMany({
+      where: { isActive: true },
+      orderBy: { priceMonthly: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        priceMonthly: true,
+        priceYearly: true,
+        maxSites: true,
+        maxPages: true,
+        maxStorageGB: true,
+        hasCustomDomain: true,
+        hasAnalytics: true,
+        hasEcommerce: true,
+        hasWhiteLabel: true,
+      },
+    })
+  }
+
   // ────────────────────────────────────── CHECKOUT ──
 
   /**

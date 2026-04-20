@@ -252,18 +252,43 @@ function MediaUploader({ onUploaded }: { onUploaded: (file: MediaFile) => void }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+const PAGE_LIMIT = 24
+
+type FilterTab = 'all' | 'images' | 'documents'
+
+const FILTER_TABS: { id: FilterTab; label: string }[] = [
+  { id: 'all', label: 'Todos' },
+  { id: 'images', label: 'Imágenes' },
+  { id: 'documents', label: 'Documentos' },
+]
+
+function matchesTab(file: MediaFile, tab: FilterTab): boolean {
+  if (tab === 'all') return true
+  if (tab === 'images') return file.mimeType.startsWith('image/')
+  return !file.mimeType.startsWith('image/')
+}
+
 export default function MediaPage() {
   const [files, setFiles] = useState<MediaFile[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [activeTab, setActiveTab] = useState<FilterTab>('all')
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const gridRef = useRef<HTMLDivElement>(null)
 
-  const fetchMedia = useCallback(async () => {
+  const totalPages = Math.ceil(total / PAGE_LIMIT)
+
+  const fetchMedia = useCallback(async (currentPage: number) => {
     setIsLoading(true)
     setError(null)
     try {
-      const { data } = await api.get<{ data: MediaFile[] }>('/media')
+      const { data } = await api.get<{ data: MediaFile[]; total: number }>(
+        `/media?page=${currentPage}&limit=${PAGE_LIMIT}`,
+      )
       setFiles(data.data)
+      setTotal(data.total)
     } catch (err) {
       setError(getApiErrorMessage(err, 'No se pudo cargar la biblioteca de medios.'))
     } finally {
@@ -271,19 +296,33 @@ export default function MediaPage() {
     }
   }, [])
 
-  useEffect(() => { void fetchMedia() }, [fetchMedia])
+  useEffect(() => { void fetchMedia(page) }, [fetchMedia, page])
 
   function handleUploaded(file: MediaFile) {
     setFiles((prev) => [file, ...prev])
+    setTotal((prev) => prev + 1)
   }
 
   function handleDeleted(id: string) {
     setFiles((prev) => prev.filter((f) => f.id !== id))
+    setTotal((prev) => Math.max(0, prev - 1))
   }
 
-  const filtered = search
-    ? files.filter((f) => f.originalName.toLowerCase().includes(search.toLowerCase()))
-    : files
+  function handleTabChange(tab: FilterTab) {
+    setActiveTab(tab)
+    setPage(1)
+  }
+
+  function handlePageChange(newPage: number) {
+    setPage(newPage)
+    gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const filtered = files.filter(
+    (f) =>
+      matchesTab(f, activeTab) &&
+      (!search || f.originalName.toLowerCase().includes(search.toLowerCase())),
+  )
 
   return (
     <div className="space-y-6">
@@ -291,7 +330,7 @@ export default function MediaPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Biblioteca de medios</h2>
-          <p className="text-sm text-gray-500 mt-0.5">{files.length} archivo{files.length !== 1 ? 's' : ''}</p>
+          <p className="text-sm text-gray-500 mt-0.5">{total} archivo{total !== 1 ? 's' : ''}</p>
         </div>
       </div>
 
@@ -300,8 +339,29 @@ export default function MediaPage() {
       {/* Uploader */}
       <MediaUploader onUploaded={handleUploaded} />
 
+      {/* Type filter tabs */}
+      {(files.length > 0 || total > 0) && (
+        <div className="flex gap-1 border-b border-gray-200">
+          {FILTER_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => handleTabChange(tab.id)}
+              className={[
+                'px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600',
+                activeTab === tab.id
+                  ? 'border-b-2 border-primary-600 text-primary-700'
+                  : 'text-gray-500 hover:text-gray-700',
+              ].join(' ')}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Search */}
-      {files.length > 0 && (
+      {(files.length > 0 || total > 0) && (
         <div className="relative max-w-xs">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true">
             <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -318,28 +378,64 @@ export default function MediaPage() {
       )}
 
       {/* Grid */}
-      {isLoading ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div key={i} className="aspect-video rounded-xl bg-gray-100 animate-pulse" />
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <Card className="p-12 text-center">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto text-gray-300 mb-3" aria-hidden="true">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <polyline points="21 15 16 10 5 21" />
-          </svg>
-          <p className="text-sm text-gray-500">
-            {search ? 'No se encontraron archivos con ese nombre.' : 'No hay archivos subidos aún.'}
-          </p>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {filtered.map((file) => (
-            <MediaCard key={file.id} file={file} onDeleted={handleDeleted} />
-          ))}
+      <div ref={gridRef}>
+        {isLoading ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="aspect-video rounded-xl bg-gray-100 animate-pulse" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <Card className="p-12 text-center">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mx-auto text-gray-300 mb-3" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+            <p className="text-sm text-gray-500">
+              {search ? 'No se encontraron archivos con ese nombre.' : 'No hay archivos subidos aún.'}
+            </p>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {filtered.map((file) => (
+              <MediaCard key={file.id} file={file} onDeleted={handleDeleted} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-4 pt-2">
+          <button
+            type="button"
+            onClick={() => handlePageChange(page - 1)}
+            disabled={page === 1}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            Anterior
+          </button>
+
+          <span className="text-sm text-gray-500 min-w-[120px] text-center">
+            Página <span className="font-semibold text-gray-900">{page}</span> de{' '}
+            <span className="font-semibold text-gray-900">{totalPages}</span>
+          </span>
+
+          <button
+            type="button"
+            onClick={() => handlePageChange(page + 1)}
+            disabled={page >= totalPages}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600"
+          >
+            Siguiente
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
         </div>
       )}
     </div>

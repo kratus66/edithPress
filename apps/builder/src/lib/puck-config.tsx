@@ -10,6 +10,9 @@ import { SeparatorBlock, separatorBlockFields, separatorBlockDefaultProps } from
 import { GalleryBlock, galleryBlockFields, galleryBlockDefaultProps } from '@/blocks/GalleryBlock'
 import { ContactFormBlock, contactFormBlockFields, contactFormBlockDefaultProps } from '@/blocks/ContactFormBlock'
 import { CardGridBlock, cardGridBlockFields, cardGridBlockDefaultProps } from '@/blocks/CardGridBlock'
+import { VideoBlock, videoBlockFields, videoBlockDefaultProps } from '@/blocks/VideoBlock'
+import { PricingBlock, pricingBlockFields, pricingBlockDefaultProps } from '@/blocks/PricingBlock'
+import { MediaPicker } from '@/components/MediaPicker'
 
 /**
  * Configuración principal de Puck.
@@ -20,12 +23,27 @@ import { CardGridBlock, cardGridBlockFields, cardGridBlockDefaultProps } from '@
  *
  * FASE 0: HeroBlock, TextBlock, ImageBlock, ButtonBlock, SeparatorBlock
  * FASE 1: GalleryBlock, ContactFormBlock, CardGridBlock
+ * FASE 2: VideoBlock, PricingBlock — MediaPicker integrado en campos de imagen
  */
 export const puckConfig: Config = {
   components: {
     HeroBlock: {
       label: 'Hero',
-      fields: heroBlockFields,
+      fields: {
+        ...heroBlockFields,
+        // Sobreescribir el campo backgroundImage con el MediaPicker personalizado
+        backgroundImage: {
+          type: 'custom',
+          label: 'Imagen de fondo',
+          render: ({ value, onChange }) => (
+            <MediaPicker
+              value={value as string}
+              onChange={onChange}
+              label="Imagen de fondo"
+            />
+          ),
+        },
+      },
       defaultProps: heroBlockDefaultProps,
       render: HeroBlock,
     },
@@ -37,7 +55,21 @@ export const puckConfig: Config = {
     },
     ImageBlock: {
       label: 'Imagen',
-      fields: imageBlockFields,
+      fields: {
+        ...imageBlockFields,
+        // Sobreescribir el campo src con el MediaPicker personalizado
+        src: {
+          type: 'custom',
+          label: 'Imagen',
+          render: ({ value, onChange }) => (
+            <MediaPicker
+              value={value as string}
+              onChange={onChange}
+              label="Imagen"
+            />
+          ),
+        },
+      },
       defaultProps: imageBlockDefaultProps,
       render: ImageBlock,
     },
@@ -55,7 +87,33 @@ export const puckConfig: Config = {
     },
     GalleryBlock: {
       label: 'Galería',
-      fields: galleryBlockFields,
+      fields: {
+        ...galleryBlockFields,
+        // Sobreescribir el campo images con MediaPicker en cada item
+        images: {
+          type: 'array',
+          label: 'Imágenes',
+          arrayFields: {
+            src: {
+              type: 'custom',
+              label: 'Imagen',
+              render: ({ value, onChange }) => (
+                <MediaPicker
+                  value={value as string}
+                  onChange={onChange}
+                  label="Imagen"
+                />
+              ),
+            },
+            alt: { type: 'text', label: 'Texto alternativo' },
+          },
+          defaultItemProps: {
+            src: 'https://placehold.co/600x400/e2e8f0/64748b?text=Imagen',
+            alt: 'Descripción de la imagen',
+          },
+          getItemSummary: (item: { alt?: string }) => (item.alt as string) || 'Imagen',
+        },
+      },
       defaultProps: galleryBlockDefaultProps,
       render: GalleryBlock,
     },
@@ -67,9 +125,55 @@ export const puckConfig: Config = {
     },
     CardGridBlock: {
       label: 'Grilla de tarjetas',
-      fields: cardGridBlockFields,
+      fields: {
+        ...cardGridBlockFields,
+        // Sobreescribir el campo cards con MediaPicker en el campo image de cada tarjeta
+        cards: {
+          type: 'array',
+          label: 'Tarjetas',
+          arrayFields: {
+            image: {
+              type: 'custom',
+              label: 'Imagen de la tarjeta',
+              render: ({ value, onChange }) => (
+                <MediaPicker
+                  value={value as string}
+                  onChange={onChange}
+                  label="Imagen de la tarjeta"
+                />
+              ),
+            },
+            imageAlt: { type: 'text', label: 'Alt de imagen' },
+            title: { type: 'text', label: 'Título' },
+            description: { type: 'textarea', label: 'Descripción' },
+            linkText: { type: 'text', label: 'Texto del enlace' },
+            linkUrl: { type: 'text', label: 'URL del enlace' },
+          },
+          defaultItemProps: {
+            image: 'https://placehold.co/400x250/e2e8f0/64748b?text=Imagen',
+            imageAlt: 'Imagen de la tarjeta',
+            title: 'Título de la tarjeta',
+            description: 'Descripción breve del servicio, producto o miembro del equipo.',
+            linkText: 'Ver más',
+            linkUrl: '#',
+          },
+          getItemSummary: (item: { title?: string }) => (item.title as string) || 'Tarjeta',
+        },
+      },
       defaultProps: cardGridBlockDefaultProps,
       render: CardGridBlock,
+    },
+    VideoBlock: {
+      label: 'Video',
+      fields: videoBlockFields,
+      defaultProps: videoBlockDefaultProps,
+      render: VideoBlock,
+    },
+    PricingBlock: {
+      label: 'Precios',
+      fields: pricingBlockFields,
+      defaultProps: pricingBlockDefaultProps,
+      render: PricingBlock,
     },
   },
 }

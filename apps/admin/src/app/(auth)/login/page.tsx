@@ -1,6 +1,8 @@
 'use client'
 
 import Link from 'next/link'
+import { Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -22,9 +24,12 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>
 
-// ── Componente ──────────────────────────────────────────────────────────────
+// ── Inner form (useSearchParams needs Suspense) ──────────────────────────────
 
-export default function LoginPage() {
+function LoginForm() {
+  const searchParams = useSearchParams()
+  const wasReset = searchParams.get('reset') === 'true'
+
   const { login, isLoading, error } = useLogin()
 
   const {
@@ -39,24 +44,19 @@ export default function LoginPage() {
   const onSubmit = (values: LoginFormValues) => login(values)
 
   return (
-    <div className="w-full max-w-sm">
-      {/* Cabecera */}
-      <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary-600 lg:hidden">
-          <span className="text-xl font-bold text-white">E</span>
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900">Iniciar sesión</h1>
-        <p className="mt-1 text-sm text-gray-500">Accede a tu panel de EdithPress</p>
-      </div>
+    <>
+      {wasReset && (
+        <Alert variant="success" className="mb-6">
+          Contraseña restablecida correctamente. Ya puedes iniciar sesión.
+        </Alert>
+      )}
 
-      {/* Error global de la API */}
       {error && (
         <Alert variant="error" className="mb-6">
           {error}
         </Alert>
       )}
 
-      {/* Formulario */}
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
         <Input
           label="Email"
@@ -95,6 +95,27 @@ export default function LoginPage() {
           Entrar
         </Button>
       </form>
+    </>
+  )
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
+
+export default function LoginPage() {
+  return (
+    <div className="w-full max-w-sm">
+      {/* Cabecera */}
+      <div className="mb-8 text-center">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary-600 lg:hidden">
+          <span className="text-xl font-bold text-white">E</span>
+        </div>
+        <h1 className="text-2xl font-bold text-gray-900">Iniciar sesión</h1>
+        <p className="mt-1 text-sm text-gray-500">Accede a tu panel de EdithPress</p>
+      </div>
+
+      <Suspense>
+        <LoginForm />
+      </Suspense>
 
       {/* Pie — registro */}
       <p className="mt-6 text-center text-sm text-gray-500">

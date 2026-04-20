@@ -1,0 +1,28 @@
+version: '3.9'
+
+# =============================================================
+# EdithPress — Monitoreo con Uptime Kuma
+# Usage:
+#   docker compose -f infrastructure/monitoring/docker-compose.monitoring.yml up -d
+#
+# Acceder al panel: http://servidor:3100
+# En producción: proteger con Nginx + autenticación básica
+# =============================================================
+
+volumes:
+  uptime_kuma_data:
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: edithpress-uptime-kuma
+    restart: unless-stopped
+    ports:
+      - "3100:3001"
+    volumes:
+      - uptime_kuma_data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

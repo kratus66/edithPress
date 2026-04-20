@@ -1,10 +1,12 @@
 'use client'
 
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Puck, type Data } from '@measured/puck'
 import '@measured/puck/puck.css'
 import { puckConfig } from '@/lib/puck-config'
 import { BuilderToolbar } from '@/components/BuilderToolbar'
+import { PreviewDrawer } from '@/components/PreviewDrawer'
+import { useAutosave } from '@/hooks/useAutosave'
 import { builderApi } from '@/lib/api-client'
 
 const EMPTY_DATA: Data = {
@@ -12,7 +14,10 @@ const EMPTY_DATA: Data = {
   root: { props: {} },
 }
 
-type SaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved' | 'error'
+const RENDERER_URL =
+  process.env.NEXT_PUBLIC_RENDERER_URL ?? 'http://localhost:3003'
+
+const RENDERER_SECRET = process.env.NEXT_PUBLIC_RENDERER_SECRET ?? ''
 
 interface BuilderEditorProps {
   siteId: string
@@ -24,33 +29,47 @@ interface BuilderEditorProps {
  *
  * Responsabilidades:
  * - Montar Puck con la configuración de bloques
- * - Gestionar el estado del guardado (idle → unsaved → saving → saved/error)
- * - Auto-save con debounce de 3s tras el último cambio
- * - Guardar antes de salir (beforeunload)
+ * - Delegar el autosave al hook useAutosave (debounce 3s + periódico 30s)
+ * - Gestionar el preview drawer lateral
+ * - Edición inline del título de la página
+ * - Publicación con confirmación
  */
 export function BuilderEditor({ siteId, pageId }: BuilderEditorProps) {
   const [data, setData] = useState<Data>(EMPTY_DATA)
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
   const [pageName, setPageName] = useState('Sin nombre')
   const [pageSlug, setPageSlug] = useState('home')
-  const [tenantSlug, setTenantSlug] = useState<string | null>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const hasUnsavedRef = useRef(false)
+  const [pageStatus, setPageStatus] = useState<'DRAFT' | 'PUBLISHED'>('DRAFT')
+  const [previewOpen, setPreviewOpen] = useState(false)
+
+  // ── Autosave ────────────────────────────────────────────────────────────────
+  const { status: saveStatus, lastSaved, saveNow, onChange: autosaveOnChange } = useAutosave({
+    pageId,
+    onSave: async (dataToSave: Data) => {
+      // PUT /api/v1/pages/:pageId/content — guarda el array de bloques de Puck
+      await builderApi.put(`/pages/${pageId}/content`, {
+        blocks: dataToSave.content,
+      })
+    },
+  })
 
   // ── Carga del contenido desde la API ───────────────────────────────────────
   useEffect(() => {
     async function loadPage() {
       try {
-        // GET /api/v1/sites/:siteId/pages/:pageId — incluye el campo content (bloques)
         const json = await builderApi.get<{
-          data: { title: string; slug: string; content: Data['content'] }
+          data: {
+            title: string
+            slug: string
+            status: 'DRAFT' | 'PUBLISHED'
+            content: Data['content']
+          }
         }>(`/sites/${siteId}/pages/${pageId}`)
 
         if (json.data.title) setPageName(json.data.title)
         if (json.data.slug) setPageSlug(json.data.slug)
+        if (json.data.status) setPageStatus(json.data.status)
 
-        // Convertir el array de bloques al formato que Puck espera: { content, root }
         if (Array.isArray(json.data.content) && json.data.content.length > 0) {
           setData({ content: json.data.content, root: { props: {} } })
         }
@@ -59,92 +78,80 @@ export function BuilderEditor({ siteId, pageId }: BuilderEditorProps) {
       }
     }
 
-    async function loadTenant() {
-      try {
-        // GET /api/v1/tenants/me — devuelve el tenant del usuario autenticado
-        const json = await builderApi.get<{ data: { slug: string } }>('/tenants/me')
-        if (json.data.slug) setTenantSlug(json.data.slug)
-      } catch {
-        // Sin tenant slug no se mostrará el botón de preview
-      }
-    }
-
     void loadPage()
-    void loadTenant()
   }, [siteId, pageId])
 
-  // ── Guardado ───────────────────────────────────────────────────────────────
-  const save = useCallback(
-    async (dataToSave: Data) => {
-      setSaveStatus('saving')
-      try {
-        // PUT /api/v1/pages/:pageId/content — guarda el array de bloques de Puck.
-        // El módulo content crea automáticamente una PageVersion del estado anterior.
-        // Se envía dataToSave.content (el array de bloques) como { blocks }.
-        await builderApi.put(`/pages/${pageId}/content`, {
-          blocks: dataToSave.content,
-        })
-        setSaveStatus('saved')
-        hasUnsavedRef.current = false
-        // Volver a 'idle' tras 3s para no distraer al usuario
-        setTimeout(() => setSaveStatus('idle'), 3000)
-      } catch {
-        setSaveStatus('error')
-      }
-    },
-    [pageId]
-  )
-
-  // ── Callback de cambio en el canvas (auto-save con debounce 3s) ────────────
+  // ── Callback de cambio en el canvas ────────────────────────────────────────
+  // Actualiza el estado local Y notifica al hook de autosave
   const handleChange = useCallback(
     (newData: Data) => {
       setData(newData)
-      setSaveStatus('unsaved')
-      hasUnsavedRef.current = true
-
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(() => save(newData), 3000)
+      autosaveOnChange(newData)
     },
-    [save]
+    [autosaveOnChange]
   )
 
-  // ── Guardar con Ctrl+S ─────────────────────────────────────────────────────
+  // ── Ctrl+S para guardar inmediatamente ────────────────────────────────────
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
-        if (debounceRef.current) clearTimeout(debounceRef.current)
-        save(data)
+        void saveNow()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [data, save])
+  }, [saveNow])
 
-  // ── Advertencia antes de salir con cambios sin guardar ────────────────────
-  useEffect(() => {
-    function handleBeforeUnload(e: BeforeUnloadEvent) {
-      if (hasUnsavedRef.current) {
-        e.preventDefault()
-        e.returnValue = ''
+  // ── Renombrar página (edición inline del título) ───────────────────────────
+  const handleTitleChange = useCallback(
+    async (newTitle: string) => {
+      setPageName(newTitle)
+      try {
+        await builderApi.patch(`/sites/${siteId}/pages/${pageId}`, { title: newTitle })
+      } catch {
+        // Revertir si falla
+        setPageName(pageName)
       }
-    }
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [])
+    },
+    [siteId, pageId, pageName]
+  )
+
+  // ── Revalidación ISR (best-effort) ────────────────────────────────────────
+  // Notifica al renderer que invalide el caché de la página publicada.
+  // Los errores se loggean pero nunca bloquean al usuario.
+  const revalidatePage = useCallback(
+    (revalidateSiteId: string, slug: string): void => {
+      fetch(`${RENDERER_URL}/api/revalidate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-renderer-secret': RENDERER_SECRET,
+        },
+        body: JSON.stringify({ siteId: revalidateSiteId, slug }),
+      }).catch((err: unknown) => {
+        console.error('[Builder] Revalidación ISR fallida (best-effort):', err)
+      })
+    },
+    []
+  )
 
   // ── Publicar ───────────────────────────────────────────────────────────────
   const handlePublish = useCallback(async () => {
     // Guardar cualquier cambio pendiente antes de publicar
-    if (hasUnsavedRef.current) await save(data)
+    await saveNow()
     try {
-      // POST /api/v1/sites/:siteId/pages/:pageId/publish
-      // Valida que la página tenga contenido (la API lanza 400 si está vacía)
       await builderApi.post(`/sites/${siteId}/pages/${pageId}/publish`)
+      setPageStatus('PUBLISHED')
+
+      // Revalidar la caché ISR del renderer de forma asíncrona.
+      // La llamada es best-effort: si falla no se bloquea al usuario.
+      revalidatePage(siteId, pageSlug)
     } catch {
-      // TODO: mostrar toast de error cuando Sonner esté integrado (FASE 1)
+      // Si falla, el modal muestra el error (lanzar para que el modal lo capture)
+      throw new Error('No se pudo publicar la página')
     }
-  }, [data, save, siteId, pageId])
+  }, [saveNow, siteId, pageId, pageSlug, revalidatePage])
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-gray-100">
@@ -152,33 +159,48 @@ export function BuilderEditor({ siteId, pageId }: BuilderEditorProps) {
       <BuilderToolbar
         siteId={siteId}
         pageName={pageName}
+        pageStatus={pageStatus}
         saveStatus={saveStatus}
+        lastSaved={lastSaved}
         viewport={viewport}
         onViewportChange={setViewport}
         onPublish={handlePublish}
-        onSave={() => save(data)}
-        tenantSlug={tenantSlug}
-        pageSlug={pageSlug}
+        onSave={saveNow}
+        onPreviewToggle={() => setPreviewOpen((v) => !v)}
+        onTitleChange={handleTitleChange}
+        isPreviewOpen={previewOpen}
       />
 
-      {/* ── Canvas Puck ──────────────────────────────────────────────────────── */}
-      {/*
-        Puck gestiona internamente el layout de 3 columnas:
-          - Panel izquierdo (bloques disponibles)
-          - Canvas central (drag & drop)
-          - Panel derecho (propiedades del bloque seleccionado)
+      {/* ── Contenedor principal: editor + drawer ───────────────────────────── */}
+      <div className="relative flex flex-1 overflow-hidden">
+        {/* Canvas Puck — se comprime cuando el preview está abierto */}
+        <div className={`flex-1 overflow-hidden transition-all duration-300 ${previewOpen ? 'mr-[50%]' : ''}`}>
+          {/*
+            Puck gestiona internamente el layout de 3 columnas:
+              - Panel izquierdo (bloques disponibles)
+              - Canvas central (drag & drop)
+              - Panel derecho (propiedades del bloque seleccionado)
 
-        overrides.header = null suprime el header interno de Puck
-        porque nosotros tenemos el toolbar propio arriba.
-      */}
-      <div className="flex-1 overflow-hidden">
-        <Puck
-          config={puckConfig}
-          data={data}
-          onChange={handleChange}
-          overrides={{
-            header: () => null,
-          }}
+            overrides.header = null suprime el header interno de Puck
+            porque usamos nuestro propio toolbar arriba.
+          */}
+          <Puck
+            config={puckConfig}
+            data={data}
+            onChange={handleChange}
+            overrides={{
+              // eslint-disable-next-line react/display-name
+              header: () => <></>,
+            }}
+          />
+        </div>
+
+        {/* Preview Drawer lateral */}
+        <PreviewDrawer
+          isOpen={previewOpen}
+          onClose={() => setPreviewOpen(false)}
+          rendererUrl={RENDERER_URL}
+          pageSlug={pageSlug}
         />
       </div>
     </div>

@@ -34,3 +34,17 @@ export const REDIS_SESSION_PREFIX = 'session:'
  * 24 horas — tiempo suficiente para que el usuario haga clic en el enlace.
  */
 export const EMAIL_VERIFICATION_TOKEN_TTL = '24h'
+
+/**
+ * SEC-SPRINT02-02 — Rate limit para /auth/forgot-password.
+ * Máximo 3 intentos por IP por hora.
+ * Más estricto que login para prevenir abuso de envío de emails.
+ */
+export const FORGOT_PASSWORD_THROTTLE_LIMIT = 3
+export const FORGOT_PASSWORD_THROTTLE_TTL_MS = 60 * 60 * 1000
+
+/**
+ * TTL del token de restablecimiento de contraseña: 1 hora.
+ * Almacenado en PasswordResetToken.expiresAt.
+ */
+export const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000

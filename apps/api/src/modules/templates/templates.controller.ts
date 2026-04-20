@@ -28,7 +28,11 @@ export class TemplatesController {
     const result = await this.templatesService.findAll(filters)
     return {
       data: result.items,
-      meta: { total: result.total },
+      meta: {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+      },
     }
   }
 

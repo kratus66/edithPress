@@ -11,7 +11,7 @@ async function bootstrap() {
   // No afecta el body parsing normal del resto de endpoints.
   const app = await NestFactory.create(AppModule, { rawBody: true })
 
-  // SEC-02 — HTTP security headers (Helmet configurado según spec de seguridad)
+  // SEC-02 / SEC-SPRINT02-03 — HTTP security headers (Helmet + CSP explícita)
   app.use(helmet({
     // X-Frame-Options: DENY — bloquea clickjacking completamente
     frameguard: { action: 'deny' },
@@ -22,8 +22,42 @@ async function bootstrap() {
       maxAge: 31536000,
       includeSubDomains: true,
     },
-    // Permissions-Policy: desactiva cámara, micrófono y geolocalización
     permittedCrossDomainPolicies: false,
+    // crossOriginEmbedderPolicy: false es necesario para que los media embeds
+    // (imágenes S3/MinIO) no sean bloqueados por COEP en el builder/renderer.
+    crossOriginEmbedderPolicy: false,
+    // SEC-SPRINT02-03 — CSP explícita que cubre los requerimientos de Next.js
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        // Next.js y scripts de hidratación requieren 'unsafe-inline' en dev.
+        // En producción se puede endurecer usando nonces (FASE 2).
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        // Tailwind CSS inyecta estilos inline
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        // Imágenes desde self, data URIs, blobs y el CDN configurado
+        imgSrc: [
+          "'self'",
+          'data:',
+          'blob:',
+          process.env.NEXT_PUBLIC_CDN_URL ?? 'http://localhost:9000',
+        ],
+        // El frontend conecta a la API (mismo host en prod; localhost en dev)
+        connectSrc: [
+          "'self'",
+          process.env.API_URL ?? 'http://localhost:3001',
+        ],
+        // Fuentes desde self únicamente
+        fontSrc: ["'self'", 'data:'],
+        // Bloquear iframes y embeds por defecto
+        frameSrc: ["'none'"],
+        objectSrc: ["'none'"],
+        // Upgrade insecure requests solo en producción (en dev corre en HTTP)
+        ...(process.env.NODE_ENV === 'production'
+          ? { upgradeInsecureRequests: [] }
+          : {}),
+      },
+    },
   }))
 
   // SEC-02 — Permissions-Policy (no cubierto por Helmet directamente)
@@ -35,9 +69,14 @@ async function bootstrap() {
   // SEC-02 — Habilitar lectura de cookies (necesario para refresh tokens en httpOnly cookies)
   app.use(cookieParser())
 
-  // CORS: permite solo el origin del frontend
+  // CORS: permite el frontend admin y el renderer (para POST /analytics/pageview)
+  const allowedOrigins = [
+    process.env.APP_URL ?? 'http://localhost:3010',
+    process.env.RENDERER_URL ?? 'http://localhost:3003',
+  ].filter(Boolean)
+
   app.enableCors({
-    origin: process.env.APP_URL ?? 'http://localhost:3000',
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   })

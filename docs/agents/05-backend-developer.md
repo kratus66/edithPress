@@ -159,18 +159,6 @@ modules/{nombre}/
 - [x] Health check endpoint: GET /api/v1/health
 
 ### FASE 1 — MVP
-- [x] Módulo auth completo (register, login, refresh, logout, verify-email)
-- [x] Módulo users (me, update, delete)
-- [x] Módulo tenants (create, get, update)
-- [x] Multi-tenancy middleware (TenantGuard, RolesGuard, @CurrentUser, @Roles)
-- [ ] Módulo sites (CRUD + publish)
-- [ ] Módulo pages (CRUD + publish + versioning)
-- [ ] Módulo content (get + save page builder content)
-- [ ] Módulo media (upload S3 + CRUD)
-- [ ] Módulo templates (list + get)
-- [ ] Módulo billing (checkout + webhook + portal)
-- [ ] Tests unitarios de servicios (>80% coverage)
-- [ ] Tests de integración de endpoints críticos
 
 ### FASE 2 — v1
 - [ ] Módulo domains (add, verify, DNS instructions)
@@ -304,4 +292,4 @@ bootstrap()
 ## Estado Actual
 **Fase activa**: FASE 0
 **Última actualización**: 2026-04-13
-**Próxima tarea**: Módulo sites (CRUD + publish)
+**Próxima tarea**: API-05 — Módulo auth (register, login, refresh, logout, verify-email)

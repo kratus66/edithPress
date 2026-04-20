@@ -168,27 +168,32 @@ components/
 ### FASE 0
 - [x] Rutas y estructura de pantallas definidas
 - [x] Componentes principales identificados
-- [ ] apps/admin inicializado (Next.js + Tailwind + shadcn/ui)
-- [ ] Layout raíz configurado (fuentes, metadata)
-- [ ] next-auth configurado (sesión con JWT de la API)
-- [ ] React Query provider configurado
-- [ ] Axios/fetch client configurado (base URL de API)
-- [ ] Página de login funcional
+- [x] apps/admin inicializado (Next.js 14 App Router + Tailwind + packages/ui)
+- [x] Layout raíz configurado (fuentes, metadata)
+- [x] Axios client configurado con interceptors (api-client.ts)
+- [x] Página de login funcional
 
 ### FASE 1 — MVP
-- [ ] Pantalla de registro + login completa
+- [x] Pantalla de login completa (React Hook Form + Zod + ?reset=true alert)
+- [x] Pantalla de registro completa
+- [x] Pantalla de verify-email
+- [x] Middleware de autenticación (middleware.ts — protege rutas, cookie-based sessions)
+- [x] Session API route (POST/DELETE/GET /api/auth/session)
+- [x] api-client.ts migrado de localStorage a document.cookie
+- [x] useLogin.ts corregido (respuesta real de API + saveSession)
+- [x] Forgot password page (/forgot-password)
+- [x] Reset password page (/reset-password?token=...)
+- [x] Dashboard de tenant (cards con datos reales del API)
+- [x] Lista de sitios + crear nuevo sitio
+- [x] Media library (upload drag-and-drop, grid, delete, copy URL, búsqueda, filtros por tipo)
+- [x] Billing: ver plan actual + botón checkout (Stripe)
+- [x] Super admin: dashboard con MRR/stats, lista de tenants, gestión de planes
 - [ ] Onboarding wizard (5 pasos)
-- [ ] Dashboard de tenant (cards + gráfica)
-- [ ] Lista de sitios + crear nuevo sitio
 - [ ] Lista de páginas del sitio
-- [ ] Marketplace de templates (básico)
-- [ ] Billing: ver plan actual + botón checkout
 - [ ] Settings básico (perfil de usuario)
-- [ ] Super admin: lista de tenants
 
 ### FASE 2 — v1
 - [ ] Gestión de dominios custom (UI + verificación)
-- [ ] Media library completa (upload, grid, delete)
 - [ ] Dashboard analítica (gráficas de visitas)
 - [ ] Billing: portal Stripe + historial de facturas
 - [ ] Onboarding mejorado con tour guiado
@@ -276,6 +281,7 @@ components/
 ---
 
 ## Estado Actual
-**Fase activa**: FASE 0
-**Última actualización**: 2026-04-13
-**Próxima tarea**: ADMIN-01 — Inicializar apps/admin con Next.js 14
+**Fase activa**: FASE 1 — MVP
+**Última actualización**: 2026-04-16
+**Completado en Sprint 02**: middleware.ts, /api/auth/session route, api-client cookie migration, useLogin fix, forgot-password page, reset-password page, login ?reset=true alert, media library type filter tabs
+**Próxima tarea**: Onboarding wizard (5 pasos), settings de perfil, lista de páginas por sitio

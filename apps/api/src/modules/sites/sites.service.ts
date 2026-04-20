@@ -51,6 +51,7 @@ export class SitesService {
     if (dto.templateId) {
       const template = await this.db.template.findUnique({
         where: { id: dto.templateId },
+        select: { id: true, content: true },
       })
       if (!template) {
         throw new BadRequestException({
@@ -58,6 +59,48 @@ export class SitesService {
           message: 'El template especificado no existe',
         })
       }
+
+      // Crear sitio + homepage con contenido del template + incrementar usageCount
+      // Usamos $transaction interactivo para poder pasar el siteId a la página
+      const site = await this.db.$transaction(async (tx) => {
+        const created = await tx.site.create({
+          data: {
+            tenantId,
+            name: dto.name,
+            description: dto.description,
+            favicon: dto.favicon,
+            templateId: dto.templateId,
+            settings: (dto.settings ?? {}) as object,
+          },
+          select: SITE_SELECT,
+        })
+
+        await tx.page.create({
+          data: {
+            siteId: created.id,
+            title: 'Inicio',
+            slug: '/',
+            isHomepage: true,
+            status: 'DRAFT',
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            content: template.content as any,
+          },
+        })
+
+        // Incrementar usageCount del template (campo Sprint 03 — cast hasta regenerar client)
+        await tx.template.update({
+          where: { id: dto.templateId },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data: { usageCount: { increment: 1 } } as any,
+        })
+
+        return created
+      })
+
+      this.logger.log(
+        `Site creado con template: siteId=${site.id} tenantId=${tenantId} templateId=${dto.templateId}`,
+      )
+      return site
     }
 
     const site = await this.db.site.create({
@@ -67,7 +110,7 @@ export class SitesService {
         description: dto.description,
         favicon: dto.favicon,
         templateId: dto.templateId,
-        settings: dto.settings ?? {},
+        settings: (dto.settings ?? {}) as object,
       },
       select: SITE_SELECT,
     })
@@ -102,8 +145,8 @@ export class SitesService {
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.favicon !== undefined && { favicon: dto.favicon }),
-        ...(dto.templateId !== undefined && { templateId: dto.templateId }),
-        ...(dto.settings !== undefined && { settings: dto.settings }),
+        ...(dto.templateId !== undefined && { templateId: dto.templateId ?? null }),
+        ...(dto.settings !== undefined && { settings: dto.settings as object }),
       },
       select: SITE_SELECT,
     })

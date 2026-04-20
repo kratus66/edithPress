@@ -1,57 +1,208 @@
-import Link from 'next/link'
-import { Button, Card, Badge } from '@edithpress/ui'
+'use client'
 
-const PLANS = [
+import { useState } from 'react'
+import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
+import { Button, Card, Badge, Switch, Alert } from '@edithpress/ui'
+import { api, getApiErrorMessage } from '@/lib/api-client'
+
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+type BillingInterval = 'monthly' | 'yearly'
+
+interface PlanPrice {
+  monthly: number
+  yearly: number
+}
+
+interface Plan {
+  id: string
+  slug: string
+  name: string
+  description: string
+  prices: PlanPrice
+  features: string[]
+  popular?: boolean
+  disabled?: boolean
+}
+
+// ── Planes mock — TODO: reemplazar con datos reales de GET /api/v1/billing/plans
+const MOCK_PLANS: Plan[] = [
   {
-    slug: 'starter', name: 'Starter', price: 0, priceLabel: 'Gratis',
+    id: 'plan-starter',
+    slug: 'starter',
+    name: 'Starter',
     description: 'Para empezar a explorar',
-    features: ['1 sitio', '5 páginas', '1 GB almacenamiento', 'Subdominio .edithpress.com', 'Soporte por email'],
-    cta: 'Plan actual', disabled: true,
+    prices: { monthly: 0, yearly: 0 },
+    features: [
+      '1 sitio',
+      '5 paginas',
+      '1 GB almacenamiento',
+      'Subdominio .edithpress.com',
+      'Soporte por email',
+    ],
+    disabled: true,
   },
   {
-    slug: 'business', name: 'Business', price: 19, priceLabel: '$19/mes',
+    id: 'plan-business',
+    slug: 'business',
+    name: 'Business',
     description: 'Para negocios en crecimiento',
-    features: ['3 sitios', 'Páginas ilimitadas', '10 GB almacenamiento', 'Dominio personalizado', 'Analítica básica', 'Soporte prioritario'],
-    cta: 'Elegir Business', popular: true,
+    prices: { monthly: 19, yearly: 15 },
+    features: [
+      '3 sitios',
+      'Paginas ilimitadas',
+      '10 GB almacenamiento',
+      'Dominio personalizado',
+      'Analitica basica',
+      'Soporte prioritario',
+    ],
+    popular: true,
   },
   {
-    slug: 'pro', name: 'Pro', price: 49, priceLabel: '$49/mes',
+    id: 'plan-pro',
+    slug: 'pro',
+    name: 'Pro',
     description: 'Para equipos y agencias',
-    features: ['Sitios ilimitados', 'Páginas ilimitadas', '50 GB almacenamiento', 'Múltiples dominios', 'Analítica avanzada', 'White-label', 'API pública'],
-    cta: 'Elegir Pro',
+    prices: { monthly: 49, yearly: 39 },
+    features: [
+      'Sitios ilimitados',
+      'Paginas ilimitadas',
+      '50 GB almacenamiento',
+      'Multiples dominios',
+      'Analitica avanzada',
+      'White-label',
+      'API publica',
+    ],
   },
 ]
 
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function UpgradePage() {
+  const [interval, setInterval] = useState<BillingInterval>('monthly')
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null)
+
+  // TODO: conectar a API real GET /api/v1/billing/plans cuando este disponible
+  const { data: plans } = useQuery<Plan[]>({
+    queryKey: ['billing-plans'],
+    queryFn: async () => {
+      const { data } = await api.get<{ data: Plan[] }>('/billing/plans')
+      return data.data
+    },
+    placeholderData: MOCK_PLANS,
+    retry: false,
+  })
+
+  const displayPlans = plans ?? MOCK_PLANS
+
+  async function handleCheckout(planSlug: string) {
+    setCheckoutError(null)
+    setCheckoutLoading(planSlug)
+    try {
+      const { data } = await api.post<{ data: { url: string } }>('/billing/checkout', {
+        planSlug,
+        interval,
+      })
+      window.location.href = data.data.url
+    } catch (err) {
+      setCheckoutError(getApiErrorMessage(err, 'No se pudo iniciar el proceso de pago.'))
+    } finally {
+      setCheckoutLoading(null)
+    }
+  }
+
+  function getPriceLabel(plan: Plan): string {
+    const price = plan.prices[interval]
+    if (price === 0) return 'Gratis'
+    const period = interval === 'monthly' ? 'mes' : 'mes (facturado anual)'
+    return `$${price}/${period}`
+  }
+
   return (
-    <div className="space-y-8">
-      <div className="text-center">
+    <div className="space-y-8 max-w-5xl">
+      <div className="text-center space-y-4">
         <h2 className="text-2xl font-bold text-gray-900">Elige tu plan</h2>
-        <p className="mt-2 text-sm text-gray-500">Cancela cuando quieras. Sin permanencia.</p>
+        <p className="text-sm text-gray-500">Cancela cuando quieras. Sin permanencia.</p>
+
+        {/* Toggle mensual / anual */}
+        <div className="flex items-center justify-center gap-3">
+          <span className={`text-sm font-medium ${interval === 'monthly' ? 'text-gray-900' : 'text-gray-400'}`}>
+            Mensual
+          </span>
+          <Switch
+            checked={interval === 'yearly'}
+            onCheckedChange={(checked) => setInterval(checked ? 'yearly' : 'monthly')}
+            aria-label="Cambiar a facturacion anual"
+          />
+          <div className="flex items-center gap-2">
+            <span className={`text-sm font-medium ${interval === 'yearly' ? 'text-gray-900' : 'text-gray-400'}`}>
+              Anual
+            </span>
+            <Badge variant="success" className="text-xs font-semibold">
+              Ahorra 20%
+            </Badge>
+          </div>
+        </div>
       </div>
 
+      {checkoutError && (
+        <Alert variant="error" onDismiss={() => setCheckoutError(null)}>
+          {checkoutError}
+        </Alert>
+      )}
+
       <div className="grid gap-6 md:grid-cols-3">
-        {PLANS.map((plan) => (
+        {displayPlans.map((plan) => (
           <Card
             key={plan.slug}
-            className={`p-6 flex flex-col relative ${plan.popular ? 'border-2 border-primary-600 shadow-md' : ''}`}
+            className={`p-6 flex flex-col relative ${
+              plan.popular
+                ? 'border-2 border-primary-600 shadow-md'
+                : ''
+            }`}
           >
             {plan.popular && (
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <Badge variant="primary" className="px-3 py-1">Más popular</Badge>
+                <Badge variant="primary" className="px-3 py-1">Mas popular</Badge>
               </div>
             )}
 
             <div className="mb-6">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{plan.name}</p>
-              <p className="mt-2 text-3xl font-bold text-gray-900">{plan.priceLabel}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                {plan.name}
+              </p>
+              <p className="mt-2 text-3xl font-bold text-gray-900">
+                {getPriceLabel(plan)}
+              </p>
+              {plan.prices[interval] > 0 && interval === 'yearly' && (
+                <p className="mt-1 text-xs text-green-600 font-medium">
+                  Equivale a ${plan.prices.yearly * 12}/ano
+                  {' '}
+                  <span className="line-through text-gray-400">
+                    ${plan.prices.monthly * 12}
+                  </span>
+                </p>
+              )}
               <p className="mt-1 text-sm text-gray-500">{plan.description}</p>
             </div>
 
             <ul className="flex-1 space-y-2 mb-6">
               {plan.features.map((f) => (
                 <li key={f} className="flex items-center gap-2 text-sm text-gray-700">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary-600 shrink-0" aria-hidden="true">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-primary-600 shrink-0"
+                    aria-hidden="true"
+                  >
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                   {f}
@@ -60,22 +211,29 @@ export default function UpgradePage() {
             </ul>
 
             {plan.disabled ? (
-              <Button variant="outline" disabled className="w-full">{plan.cta}</Button>
+              <Button variant="outline" disabled className="w-full">
+                Plan actual
+              </Button>
             ) : (
-              <form action="/api/billing/checkout" method="POST">
-                <input type="hidden" name="planSlug" value={plan.slug} />
-                <Button type="submit" variant={plan.popular ? 'primary' : 'outline'} className="w-full">
-                  {plan.cta}
-                </Button>
-              </form>
+              <Button
+                type="button"
+                variant={plan.popular ? 'primary' : 'outline'}
+                className="w-full"
+                loading={checkoutLoading === plan.slug}
+                onClick={() => handleCheckout(plan.slug)}
+              >
+                Elegir {plan.name}
+              </Button>
             )}
           </Card>
         ))}
       </div>
 
       <p className="text-center text-xs text-gray-400">
-        Precios en USD. IVA puede aplicar según tu país.{' '}
-        <Link href="/billing" className="text-primary-600 hover:underline">Volver a facturación</Link>
+        Precios en USD. IVA puede aplicar segun tu pais.{' '}
+        <Link href="/billing" className="text-primary-600 hover:underline">
+          Volver a facturacion
+        </Link>
       </p>
     </div>
   )

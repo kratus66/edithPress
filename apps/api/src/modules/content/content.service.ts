@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common'
 import { DatabaseService } from '../database/database.service'
+import { sanitizeBlockContent } from '../../common/utils/sanitize'
 import type { SaveContentDto } from './dto/save-content.dto'
 
 @Injectable()
@@ -40,23 +41,29 @@ export class ContentService {
   async saveContent(pageId: string, tenantId: string, dto: SaveContentDto, userId: string) {
     const page = await this.verifyPageOwnership(pageId, tenantId)
 
+    // SEC-SPRINT02-01 — Sanitizar XSS antes de persistir.
+    // Recorre todos los bloques y aplica DOMPurify:
+    //   - campo `content` (TextBlock): lista blanca de tags seguros
+    //   - todos los demás strings: texto plano (strip tags)
+    const sanitizedBlocks = sanitizeBlockContent(dto.blocks) as object[]
+
     await this.db.$transaction([
       // 1. Guardar el contenido anterior como versión
       this.db.pageVersion.create({
         data: {
           pageId,
-          content: page.content,
+          content: page.content as object,
           createdBy: userId,
         },
       }),
-      // 2. Actualizar el contenido actual
+      // 2. Actualizar con el contenido ya sanitizado
       this.db.page.update({
         where: { id: pageId },
-        data: { content: dto.blocks as object[] },
+        data: { content: sanitizedBlocks },
       }),
     ])
 
     this.logger.log(`Contenido guardado: pageId=${pageId} userId=${userId}`)
-    return { pageId, blocks: dto.blocks }
+    return { pageId, blocks: sanitizedBlocks }
   }
 }

@@ -9,6 +9,7 @@ import {
   Res,
   HttpCode,
   HttpStatus,
+  UnauthorizedException,
 } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger'
@@ -16,10 +17,14 @@ import type { Request, Response } from 'express'
 import type { User, TenantUser } from '@edithpress/database'
 import { AuthService } from './auth.service'
 import { RegisterDto } from './dto/register.dto'
+import { ForgotPasswordDto } from './dto/forgot-password.dto'
+import { ResetPasswordDto } from './dto/reset-password.dto'
 import { LocalAuthGuard } from './guards/local-auth.guard'
 import {
   LOGIN_THROTTLE_LIMIT,
   LOGIN_THROTTLE_TTL_MS,
+  FORGOT_PASSWORD_THROTTLE_LIMIT,
+  FORGOT_PASSWORD_THROTTLE_TTL_MS,
   REFRESH_TOKEN_TTL_SECONDS,
 } from './constants/auth.constants'
 
@@ -92,8 +97,9 @@ export class AuthController {
     // SEC-05 — Refresh token se lee desde httpOnly cookie
     const token = req.cookies?.[REFRESH_COOKIE] as string | undefined
     if (!token) {
-      return res.status(HttpStatus.UNAUTHORIZED).json({
-        error: { code: 'MISSING_REFRESH_TOKEN', message: 'Refresh token no encontrado', statusCode: 401 },
+      throw new UnauthorizedException({
+        code: 'MISSING_REFRESH_TOKEN',
+        message: 'Refresh token no encontrado',
       })
     }
 
@@ -122,6 +128,44 @@ export class AuthController {
     }
     // Borrar la cookie
     res.clearCookie(REFRESH_COOKIE, { httpOnly: true, sameSite: 'strict' })
+  }
+
+  // ──────────────────────────────────────────── POST /auth/forgot-password ──
+
+  /**
+   * SEC-SPRINT02-02 — Protección de enumeración de usuarios.
+   *
+   * Siempre retorna la MISMA respuesta genérica, sin revelar si el email
+   * está registrado. El email real se envía en background para igualar
+   * el tiempo de respuesta en ambos casos.
+   *
+   * Rate limit estricto: 3 intentos por IP por hora (previene abuso de envío).
+   */
+  @Post('forgot-password')
+  @Throttle({ default: { limit: FORGOT_PASSWORD_THROTTLE_LIMIT, ttl: FORGOT_PASSWORD_THROTTLE_TTL_MS } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Solicitar enlace de restablecimiento de contraseña' })
+  @ApiResponse({ status: 200, description: 'Respuesta genérica (no revela si el email existe)' })
+  @ApiResponse({ status: 429, description: 'Demasiadas solicitudes' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email)
+  }
+
+  // ─────────────────────────────────────────── POST /auth/reset-password ──
+
+  /**
+   * Completa el flujo de restablecimiento de contraseña.
+   * El token llega por query param del link enviado al email.
+   * No requiere autenticación.
+   */
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Restablecer contraseña con el token del email' })
+  @ApiResponse({ status: 200, description: 'Contraseña restablecida correctamente' })
+  @ApiResponse({ status: 401, description: 'Token inválido o expirado' })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    await this.authService.resetPassword(dto.token, dto.password)
+    return { data: { message: 'Contraseña actualizada correctamente' } }
   }
 
   // ────────────────────────────────────────────────── GET /auth/verify-email ──

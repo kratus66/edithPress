@@ -24,6 +24,6 @@
     "@types/bcrypt": "^5.0.0"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "node --experimental-strip-types prisma/seed.ts"
   }
 }

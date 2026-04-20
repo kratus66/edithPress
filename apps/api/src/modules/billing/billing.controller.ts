@@ -25,6 +25,20 @@ import { CreateCheckoutDto } from './dto/create-checkout.dto'
 export class BillingController {
   constructor(private readonly billingService: BillingService) {}
 
+  // ── GET /billing/plans ──────────────────────────────────────────────────
+
+  @Get('plans')
+  @ApiOperation({
+    summary: 'Listar planes disponibles (público)',
+    description:
+      'Retorna todos los planes activos con precios mensuales y anuales, ' +
+      'límites y features. No requiere autenticación.',
+  })
+  @ApiResponse({ status: 200, description: 'Lista de planes' })
+  async getPlans() {
+    return { data: await this.billingService.getPlans() }
+  }
+
   // ── POST /billing/checkout ──────────────────────────────────────────────
 
   @Post('checkout')

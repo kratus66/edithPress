@@ -2,20 +2,19 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { api, getApiErrorMessage, saveTokens } from '@/lib/api-client'
+import { api, getApiErrorMessage, saveSession } from '@/lib/api-client'
 
 interface LoginCredentials {
   email: string
   password: string
 }
 
-interface LoginResponse {
-  accessToken: string
-  refreshToken: string
-  user: {
-    id: string
-    email: string
-    role: 'SUPER_ADMIN' | 'OWNER' | 'EDITOR' | 'VIEWER'
+// Actual shape returned by POST /api/v1/auth/login
+// { data: { accessToken: string, expiresIn: number } }
+interface LoginApiResponse {
+  data: {
+    accessToken: string
+    expiresIn: number
   }
 }
 
@@ -33,12 +32,19 @@ export function useLogin() {
     setError(null)
 
     try {
-      const { data } = await api.post<LoginResponse>('/auth/login', credentials)
+      const { data: body } = await api.post<LoginApiResponse>('/auth/login', credentials)
+      const { accessToken } = body.data
 
-      saveTokens(data.accessToken, data.refreshToken)
+      // Store the token in a cookie via the Next.js session route
+      await saveSession(accessToken)
 
-      // Redirigir según rol
-      if (data.user.role === 'SUPER_ADMIN') {
+      // Decode JWT payload to determine role (no need for an extra API call)
+      const [, payloadB64] = accessToken.split('.')
+      const payload = JSON.parse(
+        atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/'))
+      ) as { role?: string }
+
+      if (payload.role === 'SUPER_ADMIN') {
         router.push('/super-admin/dashboard')
       } else {
         router.push('/dashboard')

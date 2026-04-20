@@ -9,11 +9,13 @@ import { LocalStrategy } from './strategies/local.strategy'
 import { JwtAuthGuard } from './guards/jwt-auth.guard'
 import { LocalAuthGuard } from './guards/local-auth.guard'
 import { DatabaseModule } from '../database/database.module'
+import { MailerModule } from '../mailer/mailer.module'
 import { ACCESS_TOKEN_TTL_SECONDS } from './constants/auth.constants'
 
 @Module({
   imports: [
     DatabaseModule,
+    MailerModule,
 
     PassportModule.register({ defaultStrategy: 'jwt' }),
 
