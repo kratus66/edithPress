@@ -484,3 +484,21 @@ npx prisma studio  # Abrir en browser para verificar tablas
 **Fase activa**: FASE 0
 **Última actualización**: 2026-04-13
 **Próxima tarea**: DB-05 (FASE 1) — PrismaClient singleton validado con backend
+
+---
+
+## Sprint 03.1 — Actividades Realizadas (2026-04-24)
+
+### DB-SPRINT03.1-01: Modelo NewsletterSubscriber
+- Agregado modelo `NewsletterSubscriber` en `packages/database/prisma/schema.prisma`
+- Campos: id, siteId, email, subscribedAt, isActive, source
+- Restricción `@@unique([siteId, email])` — previene suscripciones duplicadas por sitio
+- Índices en siteId y email para performance
+- Relación inversa `newsletterSubscribers` añadida al modelo `Site`
+
+### DB-SPRINT03.1-02: Migración
+- Migración ejecutada: `20260424194132_add_newsletter_subscriber`
+- Aplicada en base de datos de desarrollo (PostgreSQL en localhost:5435)
+- Prisma Client regenerado automáticamente
+
+**Estado**: DB actualizado a FASE 3.1

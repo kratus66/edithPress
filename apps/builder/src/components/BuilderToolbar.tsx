@@ -12,8 +12,8 @@ interface BuilderToolbarProps {
   pageStatus: 'DRAFT' | 'PUBLISHED'
   saveStatus: SaveStatus
   lastSaved: Date | null
-  viewport: Viewport
-  onViewportChange: (v: Viewport) => void
+  viewport?: Viewport
+  onViewportChange?: (v: Viewport) => void
   onPublish: () => Promise<void>
   onSave: () => Promise<void>
   onPreviewToggle: () => void
@@ -21,23 +21,36 @@ interface BuilderToolbarProps {
   isPreviewOpen: boolean
 }
 
-const viewportOptions: { value: Viewport; label: string; icon: string }[] = [
-  { value: 'desktop', label: 'Escritorio', icon: '🖥' },
-  { value: 'tablet', label: 'Tablet', icon: '📱' },
-  { value: 'mobile', label: 'Móvil', icon: '📲' },
-]
+// ── SVG Icons ──────────────────────────────────────────────────────────────────
 
-// ── Subcomponentes ─────────────────────────────────────────────────────────────
+function IconCheck() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
 
-function SaveIndicator({
-  status,
-  lastSaved,
-  onRetry,
-}: {
-  status: SaveStatus
-  lastSaved: Date | null
-  onRetry: () => void
-}) {
+function IconChevronLeft() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  )
+}
+
+function IconEye() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  )
+}
+
+// ── SaveIndicator ──────────────────────────────────────────────────────────────
+
+function SaveIndicator({ status, lastSaved, onRetry }: { status: SaveStatus; lastSaved: Date | null; onRetry: () => void }) {
   function formatLastSaved(date: Date): string {
     const diff = Math.round((Date.now() - date.getTime()) / 1000)
     if (diff < 5) return 'ahora'
@@ -46,81 +59,52 @@ function SaveIndicator({
     return date.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
   }
 
-  if (status === 'saved') {
-    return (
-      <span className="flex items-center gap-1 text-xs text-gray-400">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        Guardado{lastSaved ? ` ${formatLastSaved(lastSaved)}` : ''}
-      </span>
-    )
-  }
-  if (status === 'saving') {
-    return (
-      <span className="flex items-center gap-1 text-xs text-blue-500">
-        <span
-          className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-blue-300 border-t-blue-600"
-          aria-hidden="true"
-        />
-        Guardando...
-      </span>
-    )
-  }
-  if (status === 'unsaved') {
-    return (
-      <span className="flex items-center gap-1 text-xs text-amber-500">
-        <span className="inline-block h-2 w-2 rounded-full bg-amber-500" aria-hidden="true" />
-        Cambios sin guardar
-      </span>
-    )
-  }
-  if (status === 'error') {
-    return (
-      <button
-        onClick={onRetry}
-        className="flex items-center gap-1 text-xs text-red-500 underline hover:no-underline"
-      >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M6 1v2M6 9v2M1 6h2M9 6h2M2.93 2.93l1.41 1.41M7.66 7.66l1.41 1.41M2.93 9.07l1.41-1.41M7.66 4.34l1.41-1.41" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-        </svg>
-        Error al guardar — Reintentar
-      </button>
-    )
-  }
+  if (status === 'saved') return (
+    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#6b7280' }}>
+      <IconCheck />
+      {lastSaved ? `Guardado ${formatLastSaved(lastSaved)}` : 'Guardado'}
+    </span>
+  )
+
+  if (status === 'saving') return (
+    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#3b82f6' }}>
+      <span style={{
+        display: 'inline-block', width: 10, height: 10, borderRadius: '50%',
+        border: '2px solid #bfdbfe', borderTopColor: '#3b82f6',
+        animation: 'spin 0.7s linear infinite',
+      }} />
+      Guardando…
+    </span>
+  )
+
+  if (status === 'unsaved') return (
+    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#f59e0b' }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
+      Sin guardar
+    </span>
+  )
+
+  if (status === 'error') return (
+    <button onClick={onRetry} style={{
+      display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
+      color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer',
+      textDecoration: 'underline', padding: 0,
+    }}>
+      Error — Reintentar
+    </button>
+  )
+
   return null
 }
 
-function PageStatusBadge({ status }: { status: 'DRAFT' | 'PUBLISHED' }) {
-  if (status === 'PUBLISHED') {
-    return (
-      <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-700">
-        Publicada
-      </span>
-    )
-  }
-  return (
-    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-      Borrador
-    </span>
-  )
-}
+// ── InlineTitle ────────────────────────────────────────────────────────────────
 
-function InlineTitle({
-  value,
-  onChange,
-}: {
-  value: string
-  onChange: (newTitle: string) => void
-}) {
+function InlineTitle({ value, onChange }: { value: string; onChange: (t: string) => void }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(value)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Sync if parent changes the value externally
-  useEffect(() => {
-    if (!editing) setDraft(value)
-  }, [value, editing])
+  useEffect(() => { if (!editing) setDraft(value) }, [value, editing])
 
   function startEditing() {
     setDraft(value)
@@ -130,62 +114,73 @@ function InlineTitle({
 
   function commit() {
     const trimmed = draft.trim()
-    if (trimmed && trimmed !== value) {
-      onChange(trimmed)
-    }
+    if (trimmed && trimmed !== value) onChange(trimmed)
     setEditing(false)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter') commit()
-    if (e.key === 'Escape') {
-      setDraft(value)
-      setEditing(false)
-    }
+    if (e.key === 'Escape') { setDraft(value); setEditing(false) }
   }
 
-  if (editing) {
-    return (
-      <input
-        ref={inputRef}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={handleKeyDown}
-        className="w-40 rounded border border-blue-400 bg-white px-2 py-0.5 text-sm font-medium text-gray-800 outline-none focus:ring-2 focus:ring-blue-300"
-        autoFocus
-        aria-label="Renombrar página"
-      />
-    )
-  }
+  if (editing) return (
+    <input
+      ref={inputRef}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={handleKeyDown}
+      autoFocus
+      style={{
+        width: 160, fontSize: 13, fontWeight: 500, color: '#111827',
+        border: '1.5px solid #3b82f6', borderRadius: 6, padding: '3px 8px',
+        outline: 'none', background: '#fff',
+      }}
+    />
+  )
 
   return (
     <button
       onClick={startEditing}
       title="Clic para renombrar"
-      className="max-w-[160px] truncate rounded px-1 py-0.5 text-sm font-medium text-gray-800 hover:bg-gray-100 transition"
+      style={{
+        maxWidth: 180, fontSize: 13, fontWeight: 600, color: '#111827',
+        background: 'none', border: 'none', cursor: 'pointer', padding: '3px 6px',
+        borderRadius: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        transition: 'background 0.15s',
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
     >
       {value || 'Sin nombre'}
     </button>
   )
 }
 
-function PublishModal({
-  isOpen,
-  isPublishing,
-  onConfirm,
-  onCancel,
-}: {
-  isOpen: boolean
-  isPublishing: boolean
-  onConfirm: () => void
-  onCancel: () => void
+// ── StatusBadge ────────────────────────────────────────────────────────────────
+
+function StatusBadge({ status }: { status: 'DRAFT' | 'PUBLISHED' }) {
+  const published = status === 'PUBLISHED'
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+      padding: '2px 8px', borderRadius: 999,
+      background: published ? '#dcfce7' : '#f3f4f6',
+      color: published ? '#15803d' : '#6b7280',
+    }}>
+      {published ? 'Publicada' : 'Borrador'}
+    </span>
+  )
+}
+
+// ── PublishModal ───────────────────────────────────────────────────────────────
+
+function PublishModal({ isOpen, isPublishing, onConfirm, onCancel }: {
+  isOpen: boolean; isPublishing: boolean; onConfirm: () => void; onCancel: () => void
 }) {
   useEffect(() => {
     if (!isOpen) return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onCancel()
-    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel() }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [isOpen, onCancel])
@@ -194,36 +189,49 @@ function PublishModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onClick={onCancel}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="publish-modal-title"
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'rgba(0,0,0,0.45)',
+      }}
     >
       <div
-        className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#fff', borderRadius: 12, padding: '24px 28px',
+          width: 360, boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+        }}
       >
-        <h2 id="publish-modal-title" className="mb-2 text-base font-semibold text-gray-900">
+        <h2 style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 600, color: '#111827' }}>
           Publicar página
         </h2>
-        <p className="mb-6 text-sm text-gray-500">
+        <p style={{ margin: '0 0 24px', fontSize: 14, color: '#6b7280', lineHeight: 1.5 }}>
           La página será visible públicamente en tu sitio. ¿Continuar?
         </p>
-        <div className="flex justify-end gap-3">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <button
             onClick={onCancel}
             disabled={isPublishing}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition disabled:opacity-50"
+            style={{
+              padding: '8px 16px', borderRadius: 8, border: '1px solid #e5e7eb',
+              background: '#fff', color: '#374151', fontSize: 14, fontWeight: 500,
+              cursor: 'pointer', transition: 'background 0.15s',
+            }}
           >
             Cancelar
           </button>
           <button
             onClick={onConfirm}
             disabled={isPublishing}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 transition disabled:opacity-75"
+            style={{
+              padding: '8px 20px', borderRadius: 8, border: 'none',
+              background: isPublishing ? '#93c5fd' : '#2563eb',
+              color: '#fff', fontSize: 14, fontWeight: 600,
+              cursor: isPublishing ? 'not-allowed' : 'pointer', transition: 'background 0.15s',
+            }}
           >
-            {isPublishing ? 'Publicando...' : 'Publicar'}
+            {isPublishing ? 'Publicando…' : 'Publicar'}
           </button>
         </div>
       </div>
@@ -231,117 +239,115 @@ function PublishModal({
   )
 }
 
-// ── Toolbar principal ───────────────────────────────────────────────────────────
+// ── BuilderToolbar ─────────────────────────────────────────────────────────────
 
-/**
- * Toolbar superior del editor visual.
- *
- * Layout de 3 zonas:
- *  [← Volver] [Indicador estado]  |  [Nombre página] [Badge]  |  [Vista previa] [Guardar borrador] [Publicar]
- */
 export function BuilderToolbar({
-  siteId,
-  pageName,
-  pageStatus,
-  saveStatus,
-  lastSaved,
-  viewport,
-  onViewportChange,
-  onPublish,
-  onSave,
-  onPreviewToggle,
-  onTitleChange,
-  isPreviewOpen,
+  siteId, pageName, pageStatus, saveStatus, lastSaved,
+  onPublish, onSave, onPreviewToggle, onTitleChange, isPreviewOpen,
 }: BuilderToolbarProps) {
   const [showPublishModal, setShowPublishModal] = useState(false)
   const [isPublishing, setIsPublishing] = useState(false)
 
   const handlePublishConfirm = useCallback(async () => {
     setIsPublishing(true)
-    try {
-      await onPublish()
-      setShowPublishModal(false)
-    } finally {
-      setIsPublishing(false)
-    }
+    try { await onPublish(); setShowPublishModal(false) }
+    finally { setIsPublishing(false) }
   }, [onPublish])
 
   return (
     <>
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-3 shadow-sm">
-        {/* ── Izquierda: navegación + indicador de guardado ─────────────────── */}
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <Link
-            href={`/sites/${siteId}`}
-            className="flex shrink-0 items-center gap-1 rounded px-2 py-1 text-sm text-gray-600 transition hover:bg-gray-100"
+      {/* keyframe for spinner */}
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+
+      <header style={{
+        display: 'grid',
+        gridTemplateColumns: 'auto 1fr auto',
+        alignItems: 'center',
+        height: 48,
+        padding: '0 12px',
+        gap: 8,
+        background: '#ffffff',
+        borderBottom: '1px solid #e5e7eb',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+        flexShrink: 0,
+        zIndex: 10,
+        position: 'relative',
+        fontFamily: 'inherit',
+        boxSizing: 'border-box',
+      }}>
+
+        {/* ── Izquierda: Volver + estado guardado ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+          <a
+            href={`${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3010'}/sites/${siteId}`}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '5px 8px', borderRadius: 7,
+              fontSize: 13, fontWeight: 500, color: '#374151',
+              textDecoration: 'none', flexShrink: 0,
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
-            ← Volver
-          </Link>
-          <span className="text-gray-300" aria-hidden="true">|</span>
+            <IconChevronLeft />
+            Volver
+          </a>
+          <span style={{ width: 1, height: 18, background: '#e5e7eb' }} />
           <SaveIndicator status={saveStatus} lastSaved={lastSaved} onRetry={onSave} />
         </div>
 
-        {/* ── Centro: viewport + nombre + badge ──────────────────────────────── */}
-        <div className="flex shrink-0 items-center gap-3">
-          {/* Selector de viewport */}
-          <div className="flex overflow-hidden rounded-md border border-gray-200">
-            {viewportOptions.map(({ value, label, icon }) => (
-              <button
-                key={value}
-                title={label}
-                onClick={() => onViewportChange(value)}
-                className={`px-2.5 py-1.5 text-sm transition ${
-                  viewport === value
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                <span aria-hidden="true">{icon}</span>
-                <span className="sr-only">{label}</span>
-              </button>
-            ))}
-          </div>
-
-          <span className="text-gray-300" aria-hidden="true">|</span>
-
-          {/* Nombre editable */}
+        {/* ── Centro: nombre + badge (centrado) ── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, overflow: 'hidden' }}>
           <InlineTitle value={pageName} onChange={onTitleChange} />
-          <PageStatusBadge status={pageStatus} />
+          <StatusBadge status={pageStatus} />
         </div>
 
-        {/* ── Derecha: acciones principales ──────────────────────────────────── */}
-        <div className="flex shrink-0 flex-1 items-center justify-end gap-2">
-          {/* Vista previa — abre/cierra el drawer */}
+        {/* ── Derecha: acciones ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
           <button
             onClick={onPreviewToggle}
-            className={`rounded px-3 py-1.5 text-sm font-medium transition ${
-              isPreviewOpen
-                ? 'bg-gray-200 text-gray-800'
-                : 'text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50'
-            }`}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '6px 10px', borderRadius: 7, cursor: 'pointer',
+              fontSize: 13, fontWeight: 500,
+              border: '1px solid #e5e7eb',
+              background: isPreviewOpen ? '#eff6ff' : '#fff',
+              color: isPreviewOpen ? '#2563eb' : '#374151',
+            }}
           >
-            Vista previa
+            <IconEye />
+            Preview
           </button>
 
-          {/* Guardar borrador (manual, además del autosave) */}
           <button
             onClick={onSave}
-            className="rounded px-3 py-1.5 text-sm font-medium text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50 transition"
+            style={{
+              padding: '6px 12px', borderRadius: 7, cursor: 'pointer',
+              fontSize: 13, fontWeight: 500,
+              border: '1px solid #e5e7eb', background: '#fff', color: '#374151',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#f9fafb')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
           >
-            Guardar borrador
+            Guardar
           </button>
 
-          {/* Publicar → abre modal de confirmación */}
           <button
             onClick={() => setShowPublishModal(true)}
-            className="rounded bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-blue-700 transition"
+            style={{
+              padding: '6px 16px', borderRadius: 7, cursor: 'pointer',
+              fontSize: 13, fontWeight: 600, border: 'none',
+              background: '#2563eb', color: '#fff',
+              boxShadow: '0 1px 3px rgba(37,99,235,0.35)',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#1d4ed8')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = '#2563eb')}
           >
             Publicar
           </button>
         </div>
       </header>
 
-      {/* Modal de confirmación de publicación */}
       <PublishModal
         isOpen={showPublishModal}
         isPublishing={isPublishing}

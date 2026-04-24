@@ -2,12 +2,9 @@ import { Global, Module } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import Redis from 'ioredis'
 import { RedisService } from './redis.service'
+import { REDIS_CLIENT } from './redis.constants'
 
-/**
- * Token de inyección para el cliente Redis.
- * Inyectado con @Inject(REDIS_CLIENT) en los servicios que lo necesiten.
- */
-export const REDIS_CLIENT = 'REDIS_CLIENT'
+export { REDIS_CLIENT }
 
 /**
  * RedisModule — módulo global (@Global) para caché y revocación de tokens.

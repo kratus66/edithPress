@@ -183,3 +183,6 @@ Key decisions are documented in [docs/adr/](docs/adr/):
 4. Open a pull request against `main`
 
 Pre-commit hooks (Husky + lint-staged) run lint and type-check automatically on every commit.
+
+## Respuestas
+responde siempre en español 

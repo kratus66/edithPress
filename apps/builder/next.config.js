@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Genera un bundle standalone para poder correr en Docker sin node_modules
-  output: 'standalone',
+  // Genera un bundle standalone para Docker. Solo se activa con BUILD_STANDALONE=true
+  // (en local Windows los symlinks de standalone requieren permisos de administrador)
+  output: process.env.BUILD_STANDALONE === 'true' ? 'standalone' : undefined,
 
   // Transpila los packages del monorepo para que Next.js los entienda
   transpilePackages: ['@edithpress/ui', '@edithpress/types'],
@@ -21,6 +22,18 @@ const nextConfig = {
   },
 
   env: {},
+
+  // Proxy de API: el browser llama a /api/v1/* en localhost:3002 (mismo origen)
+  // y Next.js lo reenvía server-to-server a localhost:3001 → sin CORS
+  async rewrites() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
+    return [
+      {
+        source: '/api/v1/:path*',
+        destination: `${apiUrl}/api/v1/:path*`,
+      },
+    ]
+  },
 
   // SEC-SPRINT02-03 — Security headers para el editor visual (builder)
   async headers() {

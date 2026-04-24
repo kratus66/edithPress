@@ -62,6 +62,34 @@ export class TenantsService {
     })
   }
 
+  /** Stats del dashboard para el tenant autenticado. */
+  async getStats(tenantId: string) {
+    const [sitesCount, pagesCount, subscription] = await Promise.all([
+      this.db.site.count({ where: { tenantId } }),
+      this.db.page.count({ where: { site: { tenantId } } }),
+      this.db.subscription.findFirst({
+        where: { tenantId, status: 'ACTIVE' },
+        include: { plan: { select: { name: true, slug: true } } },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ])
+
+    const visits30d = await this.db.pageView.count({
+      where: {
+        site: { tenantId },
+        createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+      },
+    })
+
+    return {
+      sitesCount,
+      pagesCount,
+      visits30d,
+      planName: subscription?.plan?.name ?? 'Free',
+      planSlug: subscription?.plan?.slug ?? 'free',
+    }
+  }
+
   /** Retorna el tenant por ID. El TenantGuard ya verificó que el caller tiene acceso. */
   async findById(tenantId: string) {
     const tenant = await this.db.tenant.findUnique({

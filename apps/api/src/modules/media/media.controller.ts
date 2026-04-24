@@ -16,7 +16,7 @@ import {
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger'
-import { IsOptional, IsString, MaxLength } from 'class-validator'
+import { IsOptional, IsString, MaxLength, IsIn } from 'class-validator'
 import { ApiPropertyOptional } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { TenantGuard } from '../../common/guards/tenant.guard'
@@ -26,6 +26,14 @@ import { Roles } from '../../common/decorators/roles.decorator'
 import { PaginationDto } from '../../common/dto/pagination.dto'
 import { MediaService } from './media.service'
 import type { JwtPayload } from '../auth/strategies/jwt.strategy'
+
+class MediaQueryDto extends PaginationDto {
+  @ApiPropertyOptional({ enum: ['image', 'video', 'document'], description: 'Filtrar por tipo de archivo' })
+  @IsOptional()
+  @IsString()
+  @IsIn(['image', 'video', 'document'])
+  type?: string
+}
 
 class UploadMediaDto {
   @ApiPropertyOptional({ description: 'Texto alternativo para accesibilidad' })
@@ -81,9 +89,9 @@ export class MediaController {
   @ApiOperation({ summary: 'Listar archivos de media del tenant' })
   async findAll(
     @CurrentUser() user: JwtPayload,
-    @Query() pagination: PaginationDto,
+    @Query() query: MediaQueryDto,
   ) {
-    const result = await this.mediaService.findAll(user.tenantId, pagination)
+    const result = await this.mediaService.findAll(user.tenantId, query, query.type)
     return {
       data: result.items,
       meta: { page: result.page, limit: result.limit, total: result.total },

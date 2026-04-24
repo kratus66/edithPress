@@ -69,14 +69,22 @@ async function bootstrap() {
   // SEC-02 — Habilitar lectura de cookies (necesario para refresh tokens en httpOnly cookies)
   app.use(cookieParser())
 
-  // CORS: permite el frontend admin y el renderer (para POST /analytics/pageview)
+  // CORS: en desarrollo acepta cualquier localhost; en producción usa la lista explícita
   const allowedOrigins = [
     process.env.APP_URL ?? 'http://localhost:3010',
+    process.env.BUILDER_URL ?? 'http://localhost:3002',
     process.env.RENDERER_URL ?? 'http://localhost:3003',
   ].filter(Boolean)
 
+  const isDev = process.env.NODE_ENV !== 'production'
+
   app.enableCors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true)
+      if (isDev && /^http:\/\/localhost(:\d+)?$/.test(origin)) return callback(null, true)
+      if (allowedOrigins.includes(origin)) return callback(null, true)
+      callback(new Error(`CORS: origen no permitido — ${origin}`))
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   })

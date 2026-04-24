@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Genera un bundle standalone para poder correr en Docker sin node_modules
-  output: 'standalone',
+  // Genera un bundle standalone para Docker. Solo se activa con BUILD_STANDALONE=true
+  // (en local Windows los symlinks de standalone requieren permisos de administrador)
+  output: process.env.BUILD_STANDALONE === 'true' ? 'standalone' : undefined,
 
   // Transpila los packages del monorepo
   transpilePackages: ['@edithpress/types'],
@@ -36,6 +37,12 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'images.unsplash.com',
       },
+      // Cualquier dominio HTTPS — necesario para ProductGridBlock donde los tenants
+      // pueden subir imágenes de productos desde cualquier fuente externa
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
     ],
   },
 
@@ -53,8 +60,8 @@ const nextConfig = {
       {
         source: '/(.*)',
         headers: [
-          // Bloquea que el renderer sea embebido en iframes de terceros
-          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          // Permite iframes desde el builder en dev; en prod se restringe vía CSP
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'self' http://localhost:3002" },
           // Previene sniffing de content-type
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           // Limita referrer a origen estricto en cross-origin

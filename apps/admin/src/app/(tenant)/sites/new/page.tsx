@@ -29,14 +29,6 @@ const siteSchema = z.object({
     .string()
     .min(2, 'El nombre debe tener al menos 2 caracteres')
     .max(100, 'Máximo 100 caracteres'),
-  slug: z
-    .string()
-    .min(2, 'El subdominio debe tener al menos 2 caracteres')
-    .max(63, 'Máximo 63 caracteres')
-    .regex(
-      /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/,
-      'Solo letras minúsculas, números y guiones. No puede empezar ni terminar con guión.'
-    ),
 })
 
 type SiteFormValues = z.infer<typeof siteSchema>
@@ -186,41 +178,20 @@ function SiteDataForm({
   const {
     register,
     handleSubmit,
-    watch,
-    setValue,
     formState: { errors, isSubmitting },
   } = useForm<SiteFormValues>({
     resolver: zodResolver(siteSchema),
-    defaultValues: { name: '', slug: '' },
+    defaultValues: { name: '' },
   })
-
-  const watchedName = watch('name')
-  const watchedSlug = watch('slug')
-
-  // Auto-generar slug desde el nombre
-  function handleNameChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const name = e.target.value
-    const autoSlug = name
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9\s-]/g, '')
-      .trim()
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .slice(0, 63)
-    setValue('slug', autoSlug, { shouldValidate: watchedSlug !== '' })
-  }
 
   async function onSubmit(values: SiteFormValues) {
     setApiError(null)
     try {
       const { data } = await api.post<{ data: { id: string } }>('/sites', {
         name: values.name,
-        slug: values.slug,
         templateId: templateId !== 'tpl-blank' ? templateId : undefined,
       })
-      router.push(`/builder/${data.data.id}`)
+      router.push(`/sites/${data.data.id}/pages/new`)
     } catch (err) {
       setApiError(getApiErrorMessage(err, 'No se pudo crear el sitio.'))
     }
@@ -238,25 +209,8 @@ function SiteDataForm({
           placeholder="Mi Empresa"
           error={errors.name?.message}
           autoFocus
-          {...register('name', { onChange: handleNameChange })}
+          {...register('name')}
         />
-
-        <div className="space-y-1">
-          <Input
-            label="Subdominio"
-            placeholder="mi-empresa"
-            error={errors.slug?.message}
-            {...register('slug')}
-          />
-          {watchedSlug && !errors.slug && (
-            <p className="text-xs text-gray-500">
-              Tu sitio:{' '}
-              <span className="font-medium text-primary-600">
-                {watchedSlug}.edithpress.com
-              </span>
-            </p>
-          )}
-        </div>
       </Card>
 
       <div className="flex gap-3 justify-between border-t border-gray-100 pt-4">

@@ -7,7 +7,7 @@ import { api, getApiErrorMessage } from '@/lib/api-client'
 
 interface Tenant {
   id: string; name: string; slug: string; planName: string
-  isActive: boolean; sitesCount: number; createdAt: string
+  isActive: boolean; siteCount: number; createdAt: string
 }
 
 interface TenantsResponse {
@@ -50,7 +50,7 @@ export default function SuperAdminTenantsPage() {
 
   async function handleToggleActive(id: string, isActive: boolean) {
     try {
-      await api.patch(`/admin/tenants/${id}`, { isActive: !isActive })
+      await api.patch(`/admin/tenants/${id}/status`, { isActive: !isActive })
       setTenants((prev) => prev.map((t) => t.id === id ? { ...t, isActive: !isActive } : t))
     } catch (err) {
       setError(getApiErrorMessage(err, 'No se pudo actualizar el tenant.'))
@@ -118,12 +118,12 @@ export default function SuperAdminTenantsPage() {
                   <p className="text-xs text-gray-500">{tenant.slug}.edithpress.com</p>
                 </td>
                 <td className="px-4 py-3 text-gray-300">{tenant.planName}</td>
-                <td className="px-4 py-3 text-gray-300">{tenant.sitesCount}</td>
+                <td className="px-4 py-3 text-gray-300">{tenant.siteCount}</td>
                 <td className="px-4 py-3 text-gray-400 text-xs">
                   {new Date(tenant.createdAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </td>
                 <td className="px-4 py-3">
-                  <Badge variant={tenant.isActive ? 'success' : 'destructive'}>
+                  <Badge variant={tenant.isActive ? 'success' : 'warning'}>
                     {tenant.isActive ? 'Activo' : 'Suspendido'}
                   </Badge>
                 </td>

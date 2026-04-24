@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Genera un bundle standalone para poder correr en Docker sin node_modules
-  output: 'standalone',
+  // Genera un bundle standalone para Docker. Solo se activa con BUILD_STANDALONE=true
+  output: process.env.BUILD_STANDALONE === 'true' ? 'standalone' : undefined,
 
   // Transpila los packages del monorepo para que Next.js los entienda
   transpilePackages: ['@edithpress/ui', '@edithpress/types'],

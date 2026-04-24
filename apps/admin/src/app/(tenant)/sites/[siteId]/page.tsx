@@ -1,9 +1,10 @@
 'use client'
 
-import { use, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button, Badge, Card, Alert } from '@edithpress/ui'
 import { useSite } from '@/hooks/useSites'
+import { useAuth } from '@/contexts/AuthContext'
 import { api, getApiErrorMessage } from '@/lib/api-client'
 
 interface Page {
@@ -27,16 +28,17 @@ function PageRow({ id, siteId, title, slug, status, isHomepage }: Page & { siteI
         <Badge variant={status === 'PUBLISHED' ? 'success' : status === 'ARCHIVED' ? 'warning' : 'default'}>
           {status === 'PUBLISHED' ? 'Publicado' : status === 'ARCHIVED' ? 'Archivado' : 'Borrador'}
         </Badge>
-        <Link href={`/builder/${siteId}/${id}`}>
+        <a href={`${process.env.NEXT_PUBLIC_BUILDER_URL ?? 'http://localhost:3002'}/builder/${siteId}/${id}`}>
           <Button variant="ghost" size="sm">Editar</Button>
-        </Link>
+        </a>
       </div>
     </div>
   )
 }
 
-export default function SiteDetailPage({ params }: { params: Promise<{ siteId: string }> }) {
-  const { siteId } = use(params)
+export default function SiteDetailPage({ params }: { params: { siteId: string } }) {
+  const { siteId } = params
+  const { user } = useAuth()
   const { site, isLoading: siteLoading, error: siteError } = useSite(siteId)
   const [pages, setPages] = useState<Page[]>([])
   const [pagesLoading, setPagesLoading] = useState(true)
@@ -103,7 +105,7 @@ export default function SiteDetailPage({ params }: { params: Promise<{ siteId: s
       <Card className="p-5">
         <h3 className="text-sm font-semibold text-gray-700 mb-4">Acciones rápidas</h3>
         <div className="flex flex-wrap gap-3">
-          <Link href={`/builder/${siteId}`}>
+          <Link href={`/sites/${siteId}/pages`}>
             <Button>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -119,9 +121,9 @@ export default function SiteDetailPage({ params }: { params: Promise<{ siteId: s
           >
             {site.isPublished ? 'Despublicar' : 'Publicar sitio'}
           </Button>
-          {site.isPublished && (
+          {site.isPublished && user?.tenantSlug && (
             <a
-              href={`https://${site.settings?.slug ?? siteId}.edithpress.com`}
+              href={`https://${user.tenantSlug}.edithpress.com`}
               target="_blank"
               rel="noopener noreferrer"
             >

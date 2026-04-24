@@ -113,7 +113,7 @@ export class AuthService {
       this.logger.error(`Error enviando email de verificación a ${user.email}: ${String(err)}`)
     })
 
-    return this.generateTokens(user.id, user.email, tenant.id, 'OWNER')
+    return this.generateTokens(user.id, user.email, tenant.id, 'OWNER', false, tenant.slug)
   }
 
   // ────────────────────────────────────────────────────────────────── LOGIN ──
@@ -152,9 +152,20 @@ export class AuthService {
     }
 
     const primaryTenantUser = user.tenantUsers[0]
-    if (!primaryTenantUser) throw new InternalServerErrorException('Usuario sin tenant asignado')
 
-    return this.generateTokens(user.id, user.email, primaryTenantUser.tenantId, primaryTenantUser.role)
+    // Super admin: no tenant assigned → emit token with isSuperAdmin flag
+    if (!primaryTenantUser) {
+      return this.generateTokens(user.id, user.email, '', 'SUPER_ADMIN', true)
+    }
+
+    // Check if the tenant slug is 'super-admin' → super admin user
+    const tenant = await this.db.tenant.findUnique({
+      where: { id: primaryTenantUser.tenantId },
+      select: { slug: true },
+    })
+    const isSuperAdmin = tenant?.slug === 'super-admin'
+
+    return this.generateTokens(user.id, user.email, primaryTenantUser.tenantId, primaryTenantUser.role, isSuperAdmin, tenant?.slug)
   }
 
   // ─────────────────────────────────────────────────────────────── REFRESH ──
@@ -198,13 +209,24 @@ export class AuthService {
     ])
 
     const primaryTenantUser = tokenRecord.user.tenantUsers[0]
-    if (!primaryTenantUser) throw new InternalServerErrorException()
+
+    if (!primaryTenantUser) {
+      return this.generateTokens(tokenRecord.userId, tokenRecord.user.email, '', 'SUPER_ADMIN', true)
+    }
+
+    const tenant = await this.db.tenant.findUnique({
+      where: { id: primaryTenantUser.tenantId },
+      select: { slug: true },
+    })
+    const isSuperAdmin = tenant?.slug === 'super-admin'
 
     return this.generateTokens(
       tokenRecord.userId,
       tokenRecord.user.email,
       primaryTenantUser.tenantId,
       primaryTenantUser.role,
+      isSuperAdmin,
+      tenant?.slug,
     )
   }
 
@@ -348,8 +370,17 @@ export class AuthService {
     email: string,
     tenantId: string,
     role: string,
+    isSuperAdmin = false,
+    tenantSlug?: string,
   ): Promise<AuthTokens> {
-    const payload: JwtPayload = { sub: userId, email, tenantId, role }
+    const payload: JwtPayload = {
+      sub: userId,
+      email,
+      tenantId,
+      role,
+      ...(tenantSlug && { tenantSlug }),
+      ...(isSuperAdmin && { isSuperAdmin: true }),
+    }
     const accessToken = this.jwtService.sign(payload)
 
     // Refresh token opaco (UUID v4)

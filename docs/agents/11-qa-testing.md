@@ -373,3 +373,26 @@ export default {
 
 **Smoke tests**: apps/api/test/smoke.test.ts — ejecutar con `pnpm test:smoke SMOKE_BASE_URL=https://...`
 **Próxima tarea**: unit tests de redis.service y mailer.service; luego E2E Flujo 1 (registro → primer sitio)
+
+---
+
+## Sprint 03.1 — Actividades Realizadas (2026-04-24)
+
+### QA-SPRINT03.1-01: Tests Unitarios NewsletterService
+- Creado `apps/api/src/modules/newsletter/newsletter.service.spec.ts`
+- 10 tests cubriendo: subscribe, getSubscribers, unsubscribe, exportSubscribersCsv
+- Cobertura newsletter.service.ts: **100%** (statements, branches, functions, lines)
+
+### Casos testeados
+- subscribe: email válido → crea suscriptor; email ya suscrito → reactiva; siteId inválido → 404
+- getSubscribers: paginación, filtro active=true, tenant incorrecto → 404
+- unsubscribe: token válido → soft delete; token inválido → success sin revelar info
+- exportCsv: retorna CSV con header y filas; tenant incorrecto → 404
+
+### QA-SPRINT03.1-02: Verificación de Regresión
+- Suite completa ejecutada: 165 tests pasando, 2 fallos pre-existentes (no relacionados con Sprint 03.1)
+  - `pages.service.spec.ts`: falla en mock de `site.update` (pre-existente de Sprint 03)
+  - `auth.service.spec.ts`: falla en test de tenant no asignado (pre-existente de Sprint 03)
+- TypeScript: builder, renderer, api sin errores de tipo
+
+**Estado**: QA actualizado a FASE 3.1

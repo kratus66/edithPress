@@ -1277,3 +1277,23 @@ DÍA 6-7:
   → Agente 10 (Security)— auditoría pre-staging + custom domains security
   → Agente 11 (QA)      — cobertura mailer/redis/billing + E2E journey
 ```
+
+---
+
+## Estado Sprint 03.1 — Expansión de Bloques
+**Fecha de cierre**: 2026-04-24
+
+- [✅] NavbarBlock registrado y renderizando (con sanitizeUrl en renderer)
+- [✅] ProductGridBlock creado y renderizando
+- [✅] StatsBlock creado y renderizando
+- [✅] NewsletterBlock creado y renderizando (con lógica real de submit en renderer)
+- [✅] Endpoint newsletter subscription implementado (POST/GET/DELETE + export CSV)
+- [✅] NewsletterSubscriber modelo creado en Prisma + migración aplicada
+- [✅] Módulo NewsletterModule registrado en AppModule
+- [✅] Todos los builds pasan sin errores TypeScript (builder, renderer, api, ui)
+- [✅] docs/block-schemas.md creado (contrato inmutable builder ↔ renderer)
+- [✅] docs/block-catalog.md creado (catálogo + historias de usuario + tipos de sitio)
+- [✅] docs/security-audit-sprint03.1.md creado (sanitizeUrl, rate limiting, auditoría)
+- [✅] newsletter.service.spec.ts — 10 tests, 100% cobertura del servicio
+- [✅] packages/ui: ProductCard, NewsletterForm, StatItem, CartBadge creados
+- [⚠️] 2 tests pre-existentes fallando (pages.service y auth.service — no relacionados con Sprint 03.1)

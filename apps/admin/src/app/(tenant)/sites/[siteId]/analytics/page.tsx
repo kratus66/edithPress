@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { Card, Alert } from '@edithpress/ui'
@@ -296,9 +296,9 @@ function ReferrersTable({
 export default function SiteAnalyticsPage({
   params,
 }: {
-  params: Promise<{ siteId: string }>
+  params: { siteId: string }
 }) {
-  const { siteId } = use(params)
+  const { siteId } = params
   const [period, setPeriod] = useState<Period>('30d')
 
   const { data: analytics, isLoading, isError } = useQuery<AnalyticsData>({

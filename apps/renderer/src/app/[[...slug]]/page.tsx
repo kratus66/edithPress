@@ -47,9 +47,6 @@ async function fetchSite(tenantSlug: string, isDraft: boolean): Promise<SiteInfo
     const res = await fetch(
       `${API_BASE}/api/v1/renderer/tenant/${tenantSlug}`,
       {
-        // En Draft Mode: no-store para ver siempre el estado actual.
-        // En modo normal: next.revalidate = 3600 activa ISR (no usar cache:force-cache
-        // junto a next.revalidate — son opciones que se solapan en Next.js 14).
         ...(isDraft
           ? { cache: 'no-store' as const }
           : { next: { revalidate: 3600 } }),
@@ -60,7 +57,23 @@ async function fetchSite(tenantSlug: string, isDraft: boolean): Promise<SiteInfo
     )
 
     if (!res.ok) return null
-    return res.json() as Promise<SiteInfo>
+
+    const json = (await res.json()) as {
+      data: {
+        tenant: { name: string; slug: string; logoUrl?: string }
+        site: { id: string; name: string; description?: string; favicon?: string; settings?: unknown }
+        navigation: Array<{ id: string; title: string; slug: string; isHomepage: boolean }>
+      }
+    }
+
+    const { tenant, site, navigation } = json.data
+    return {
+      id: site.id,
+      name: site.name ?? tenant.name,
+      slug: tenant.slug,
+      favicon: site.favicon,
+      navItems: navigation.map((p) => ({ label: p.title, slug: p.slug })),
+    }
   } catch {
     return null
   }
@@ -72,7 +85,6 @@ async function fetchPage(
   isDraft: boolean
 ): Promise<PageContent | null> {
   try {
-    // En Draft Mode añadimos ?draft=true para que la API devuelva borradores
     const url = isDraft
       ? `${API_BASE}/api/v1/renderer/tenant/${tenantSlug}/page/${pageSlug}?draft=true`
       : `${API_BASE}/api/v1/renderer/tenant/${tenantSlug}/page/${pageSlug}`
@@ -87,7 +99,34 @@ async function fetchPage(
     })
 
     if (!res.ok) return null
-    return res.json() as Promise<PageContent>
+
+    const json = (await res.json()) as {
+      data: {
+        page: {
+          id: string
+          title: string
+          slug: string
+          content: Block[]
+          meta: { title?: string; description?: string; ogImage?: string }
+          isHomepage: boolean
+          publishedAt: string
+          updatedAt: string
+        }
+      }
+    }
+
+    const { page } = json.data
+    return {
+      id: page.id,
+      slug: page.slug,
+      title: page.title,
+      metaTitle: page.meta?.title,
+      metaDesc: page.meta?.description,
+      ogImage: page.meta?.ogImage,
+      content: Array.isArray(page.content) ? page.content : [],
+      publishedAt: page.publishedAt,
+      updatedAt: page.updatedAt,
+    }
   } catch {
     return null
   }
@@ -296,7 +335,7 @@ export default async function TenantPage({
     <>
       <SiteNav site={site} currentSlug={pageSlug || 'home'} />
 
-      <BlockRenderer blocks={page.content} />
+      <BlockRenderer blocks={page.content} siteId={site.id} />
 
       <footer className="border-t border-gray-200 py-8 text-center text-sm text-gray-500">
         <p>

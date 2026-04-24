@@ -7,10 +7,9 @@ type PreviewViewport = 'desktop' | 'mobile'
 interface PreviewDrawerProps {
   isOpen: boolean
   onClose: () => void
-  /** URL base del renderer, ej: http://localhost:3003 */
   rendererUrl: string
-  /** Slug de la página a previsualizar */
   pageSlug: string
+  tenantSlug: string
 }
 
 /**
@@ -25,16 +24,23 @@ export function PreviewDrawer({
   onClose,
   rendererUrl,
   pageSlug,
+  tenantSlug,
 }: PreviewDrawerProps) {
   const [viewport, setViewport] = useState<PreviewViewport>('desktop')
 
-  // Construir la URL de preview apuntando al slug de la página
-  const slug = pageSlug === '/' || pageSlug === 'home' ? '' : pageSlug
-  const previewUrl = `${rendererUrl}/${slug}`
+  // URL del renderer con el subdominio del tenant: {tenantSlug}.localhost:3003/{pageSlug}
+  const rendererBase = new URL(rendererUrl)
+  const tenantHost = tenantSlug ? `${tenantSlug}.${rendererBase.host}` : rendererBase.host
+  const pagePath = !pageSlug || pageSlug === 'home' ? '/' : `/${pageSlug}`
+  const previewUrl = `${rendererBase.protocol}//${tenantHost}${pagePath}`
 
+  // Abrir en nueva pestaña vía el proxy seguro del builder
   const handleOpenNewTab = useCallback(() => {
-    window.open(previewUrl, '_blank', 'noopener,noreferrer')
-  }, [previewUrl])
+    const url = tenantSlug
+      ? `/api/preview?tenantSlug=${tenantSlug}&pageSlug=${pageSlug || 'home'}`
+      : previewUrl
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }, [tenantSlug, pageSlug, previewUrl])
 
   if (!isOpen) return null
 

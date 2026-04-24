@@ -185,6 +185,27 @@ export class PagesService {
     this.logger.log(`Página eliminada: pageId=${pageId}`)
   }
 
+  // ──────────────────────────────────────── SAVE CONTENT ──
+
+  async saveContent(pageId: string, siteId: string, tenantId: string, blocks: unknown[]) {
+    await this.verifySiteOwnership(siteId, tenantId)
+
+    const page = await this.db.page.findFirst({
+      where: { id: pageId, siteId },
+      select: { id: true },
+    })
+    if (!page) throw new NotFoundException('Página no encontrada')
+
+    const updated = await this.db.page.update({
+      where: { id: pageId },
+      data: { content: blocks as object[] },
+      select: { id: true, updatedAt: true },
+    })
+
+    this.logger.log(`Contenido guardado: pageId=${pageId}`)
+    return updated
+  }
+
   // ──────────────────────────────────────── PUBLISH ──
 
   async publish(pageId: string, siteId: string, tenantId: string) {
@@ -204,11 +225,19 @@ export class PagesService {
       })
     }
 
-    return this.db.page.update({
-      where: { id: pageId },
-      data: { status: 'PUBLISHED', publishedAt: new Date() },
-      select: PAGE_SELECT,
-    })
+    const [updatedPage] = await this.db.$transaction([
+      this.db.page.update({
+        where: { id: pageId },
+        data: { status: 'PUBLISHED', publishedAt: new Date() },
+        select: PAGE_SELECT,
+      }),
+      this.db.site.update({
+        where: { id: siteId },
+        data: { isPublished: true },
+      }),
+    ])
+
+    return updatedPage
   }
 
   async unpublish(pageId: string, siteId: string, tenantId: string) {

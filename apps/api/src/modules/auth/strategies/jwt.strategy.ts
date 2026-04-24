@@ -4,10 +4,12 @@ import { ExtractJwt, Strategy } from 'passport-jwt'
 import { ConfigService } from '@nestjs/config'
 
 export interface JwtPayload {
-  sub: string       // userId
+  sub: string          // userId
   email: string
   tenantId: string
-  role: string      // TenantRole
+  tenantSlug?: string  // slug del tenant (ej: "mi-empresa") para construir URLs del renderer
+  role: string         // TenantRole
+  isSuperAdmin?: boolean
 }
 
 /**
@@ -34,7 +36,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
    * Solo validamos que tenga los campos requeridos.
    */
   validate(payload: JwtPayload): JwtPayload {
-    if (!payload.sub || !payload.tenantId || !payload.role) {
+    if (!payload.sub || !payload.role) {
+      throw new UnauthorizedException('Token inválido')
+    }
+    // Super admins have no tenantId — allow empty string
+    if (!payload.isSuperAdmin && !payload.tenantId) {
       throw new UnauthorizedException('Token inválido')
     }
     return payload

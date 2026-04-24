@@ -1,3 +1,4 @@
+import React from 'react'
 import { HeroBlock, type HeroBlockProps } from './blocks/HeroBlock'
 import { TextBlock, type TextBlockProps } from './blocks/TextBlock'
 import { ImageBlock, type ImageBlockProps } from './blocks/ImageBlock'
@@ -8,6 +9,10 @@ import { ContactFormBlock, type ContactFormBlockProps } from './blocks/ContactFo
 import { CardGridBlock, type CardGridBlockProps } from './blocks/CardGridBlock'
 import { VideoBlock, type VideoBlockProps } from './blocks/VideoBlock'
 import { PricingBlock, type PricingBlockProps } from './blocks/PricingBlock'
+import { NavbarBlock, type NavbarBlockProps } from './blocks/NavbarBlock'
+import { ProductGridBlock, type ProductGridBlockProps } from './blocks/ProductGridBlock'
+import { StatsBlock, type StatsBlockProps } from './blocks/StatsBlock'
+import { NewsletterBlock, type NewsletterBlockProps } from './blocks/NewsletterBlock'
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
@@ -29,6 +34,10 @@ export type Block =
   | { type: 'CardGridBlock'; props: CardGridBlockProps }
   | { type: 'VideoBlock'; props: VideoBlockProps }
   | { type: 'PricingBlock'; props: PricingBlockProps }
+  | { type: 'NavbarBlock'; props: NavbarBlockProps }
+  | { type: 'ProductGridBlock'; props: ProductGridBlockProps }
+  | { type: 'StatsBlock'; props: StatsBlockProps }
+  | { type: 'NewsletterBlock'; props: Omit<NewsletterBlockProps, 'siteId'> }
 
 // ── Switch tipado tipo → componente ───────────────────────────────────────────
 
@@ -37,7 +46,7 @@ export type Block =
  * tiempo de compilación que cada type recibe exactamente sus props correctas.
  * No hay `any` ni casts inseguros.
  */
-function renderBlock(block: Block, index: number): React.ReactNode {
+function renderBlock(block: Block, index: number, siteId?: string): React.ReactNode {
   switch (block.type) {
     case 'HeroBlock':
       return <HeroBlock key={index} {...block.props} />
@@ -68,6 +77,18 @@ function renderBlock(block: Block, index: number): React.ReactNode {
 
     case 'PricingBlock':
       return <PricingBlock key={index} {...block.props} />
+
+    case 'NavbarBlock':
+      return <NavbarBlock key={index} {...block.props} />
+
+    case 'ProductGridBlock':
+      return <ProductGridBlock key={index} {...block.props} />
+
+    case 'StatsBlock':
+      return <StatsBlock key={index} {...block.props} />
+
+    case 'NewsletterBlock':
+      return <NewsletterBlock key={index} {...block.props} siteId={siteId} />
 
     default: {
       // TypeScript debería prevenir esta rama con exhaustive check,
@@ -100,18 +121,19 @@ function renderBlock(block: Block, index: number): React.ReactNode {
 
 interface BlockRendererProps {
   blocks: Block[]
+  siteId?: string
 }
 
 /**
  * BlockRenderer — Traduce el JSON de bloques almacenado en la API → React.
  *
  * Es un Server Component: se ejecuta en el servidor para máximo SEO y
- * performance (sin JS extra en el cliente salvo ContactFormBlock).
+ * performance (sin JS extra en el cliente salvo ContactFormBlock y NewsletterBlock).
  *
  * Uso:
- *   <BlockRenderer blocks={page.content} />
+ *   <BlockRenderer blocks={page.content} siteId={site.id} />
  */
-export function BlockRenderer({ blocks }: BlockRendererProps) {
+export function BlockRenderer({ blocks, siteId }: BlockRendererProps) {
   if (!blocks?.length) {
     return (
       <main
@@ -131,7 +153,8 @@ export function BlockRenderer({ blocks }: BlockRendererProps) {
 
   return (
     <main>
-      {blocks.map((block, index) => renderBlock(block, index))}
+      {blocks.map((block, index) => renderBlock(block, index, siteId))}
     </main>
   )
 }
+

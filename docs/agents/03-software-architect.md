@@ -355,3 +355,24 @@ packages:
 **Fase activa**: FASE 0
 **Última actualización**: 2026-04-13
 **Próxima tarea**: ARCH-01 a ARCH-07 completadas — FASE 0 finalizada
+
+---
+
+## Sprint 03.1 — Actividades Realizadas (2026-04-24)
+
+### ARCH-SPRINT03.1-01: Revisión de NavbarBlock
+- Revisado NavbarBlock.tsx — schema completo, sin sub-menús en v1 (documentado como limitación)
+- Verificado que no hay `dangerouslySetInnerHTML` ni riesgos XSS directos
+
+### ARCH-SPRINT03.1-02: Diseño de Schemas
+- Creado `docs/block-schemas.md` con schemas TypeScript de los 4 bloques nuevos
+- ProductGridBlock: grilla e-commerce con 2/3/4 columnas, artesano opcional
+- StatsBlock: fila de estadísticas con iconos emoji, layout con/sin divisores
+- NewsletterBlock: formulario de suscripción, siteId inyectado por renderer (no prop de usuario)
+
+### Decisiones de Arquitectura
+- `price` en ProductGridBlock es `string` (no number) para soportar cualquier moneda/formato
+- `siteId` en NewsletterBlock no es prop configurable — se inyecta desde BlockRenderer
+- Schemas en v1 son TypeScript-first (interfaces), sin Zod
+
+**Estado**: ARCH actualizado a FASE 3.1

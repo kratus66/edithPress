@@ -300,3 +300,24 @@ export function middleware(request: NextRequest) {
 **Fase activa**: FASE 0
 **Última actualización**: 2026-04-13
 **Próxima tarea**: RENDERER-01 — Inicializar apps/renderer con Next.js
+
+---
+
+## Sprint 03.1 — Actividades Realizadas (2026-04-24)
+
+### RENDERER-SPRINT03.1-01: Todos los bloques nuevos en el renderer
+Los siguientes bloques existen en `apps/renderer/src/app/_components/blocks/` y están registrados en `BlockRenderer.tsx`:
+
+- **NavbarBlock.tsx** — con `sanitizeUrl()` para prevenir XSS vía `javascript:` URIs
+- **ProductGridBlock.tsx** — usa `next/image` para performance, responsive con CSS Grid
+- **StatsBlock.tsx** — idéntico al builder (bloque puramente visual)
+- **NewsletterBlock.tsx** — `'use client'`, lógica real de submit a `/api/v1/sites/:siteId/newsletter/subscribe`
+
+### RENDERER-SPRINT03.1-02: Inyección de siteId en NewsletterBlock
+- `BlockRenderer.tsx` inyecta `siteId` como prop adicional al renderizar `NewsletterBlock`
+- El `siteId` viene del contexto del sitio, no es configurable por el usuario
+
+### RENDERER-SPRINT03.1-03: Verificación TypeScript
+- `pnpm exec tsc --noEmit` — sin errores TypeScript
+
+**Estado**: RENDERER actualizado a FASE 3.1

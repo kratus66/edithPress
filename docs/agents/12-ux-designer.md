@@ -374,3 +374,29 @@ El cambio está aplicado en `tokens.css` y en el design system de este archivo.
 **Última actualización**: 2026-04-13
 **Completadas**: UX-01, UX-02, UX-03, UX-04
 **Próxima tarea**: UX-05 — Crear componentes de layout del Admin (Sidebar, Header, MobileNav)
+---
+
+## Sprint 03.1 — Actividades Realizadas (2026-04-24)
+
+### UX-SPRINT03.1-01: Componentes UI para los nuevos bloques
+Creados en `packages/ui/src/components/`:
+
+- **ProductCard.tsx** — tarjeta de producto con hover animation, category badge, precio + CTA
+  - Props: image, name, price, ctaText, ctaUrl, accentColor, style (shadow/border/minimal), showCategory, showArtisan
+- **NewsletterForm.tsx** — formulario de suscripción visual con estados idle/loading/success/error
+  - Props: value, onChange, onSubmit, status, statusMessage, placeholder, buttonText, accentColor
+- **StatItem.tsx** — elemento de estadística con emoji, valor grande y etiqueta
+  - Props: value, label, icon (emoji opcional), accentColor, textColor
+- **CartBadge.tsx** — badge circular de conteo para el ícono del carrito
+  - Props: count (0 = oculto), color (default: #b45309)
+
+### UX-SPRINT03.1-02: Exportaciones
+- Todos exportados desde `packages/ui/src/index.ts`
+- TypeScript: `pnpm typecheck` — sin errores
+
+### Notas de Implementación
+- Solo inline styles — sin Tailwind (coherente con los bloques del builder/renderer)
+- React.useState usado solo en ProductCard (hover) y NewsletterForm (formulario)
+- CartBadge retorna `null` si count ≤ 0
+
+**Estado**: UX actualizado a FASE 3.1

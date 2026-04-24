@@ -11,6 +11,9 @@ export interface HeroBlockProps {
   ctaUrl: string
   textAlign: 'left' | 'center' | 'right'
   paddingY: 'sm' | 'md' | 'lg' | 'xl'
+  fontFamily: string
+  titleFontSize: 'sm' | 'md' | 'lg' | 'xl' | 'xxl'
+  subtitleFontSize: 'sm' | 'md' | 'lg' | 'xl'
 }
 
 const paddingMap: Record<HeroBlockProps['paddingY'], string> = {
@@ -20,12 +23,49 @@ const paddingMap: Record<HeroBlockProps['paddingY'], string> = {
   xl: '160px',
 }
 
+const titleFontSizeMap: Record<HeroBlockProps['titleFontSize'], string> = {
+  sm: '1.5rem',
+  md: '2.25rem',
+  lg: 'clamp(2rem, 5vw, 3.5rem)',
+  xl: 'clamp(2.5rem, 6vw, 5rem)',
+  xxl: 'clamp(3rem, 8vw, 7rem)',
+}
+
+const subtitleFontSizeMap: Record<HeroBlockProps['subtitleFontSize'], string> = {
+  sm: '0.95rem',
+  md: '1.1rem',
+  lg: 'clamp(1rem, 2.5vw, 1.25rem)',
+  xl: 'clamp(1.2rem, 3vw, 1.6rem)',
+}
+
 export const heroBlockFields: Fields<HeroBlockProps> = {
   title: { type: 'text', label: 'Título (H1)' },
   subtitle: { type: 'text', label: 'Subtítulo' },
   backgroundColor: { type: 'text', label: 'Color de fondo (hex)' },
   backgroundImage: { type: 'text', label: 'URL imagen de fondo (opcional)' },
   textColor: { type: 'text', label: 'Color del texto (hex)' },
+  fontFamily: { type: 'text', label: 'Fuente' },
+  titleFontSize: {
+    type: 'radio',
+    label: 'Tamaño del título',
+    options: [
+      { label: 'S', value: 'sm' },
+      { label: 'M', value: 'md' },
+      { label: 'L', value: 'lg' },
+      { label: 'XL', value: 'xl' },
+      { label: 'XXL', value: 'xxl' },
+    ],
+  },
+  subtitleFontSize: {
+    type: 'radio',
+    label: 'Tamaño del subtítulo',
+    options: [
+      { label: 'S', value: 'sm' },
+      { label: 'M', value: 'md' },
+      { label: 'L', value: 'lg' },
+      { label: 'XL', value: 'xl' },
+    ],
+  },
   ctaText: { type: 'text', label: 'Texto del botón CTA' },
   ctaUrl: { type: 'text', label: 'URL del botón CTA' },
   textAlign: {
@@ -59,6 +99,9 @@ export const heroBlockDefaultProps: HeroBlockProps = {
   ctaUrl: '/contacto',
   textAlign: 'center',
   paddingY: 'lg',
+  fontFamily: 'inherit',
+  titleFontSize: 'lg',
+  subtitleFontSize: 'lg',
 }
 
 export function HeroBlock({
@@ -71,8 +114,13 @@ export function HeroBlock({
   ctaUrl,
   textAlign,
   paddingY,
+  fontFamily = 'inherit',
+  titleFontSize = 'lg',
+  subtitleFontSize = 'lg',
 }: HeroBlockProps) {
   const padding = paddingMap[paddingY]
+  const resolvedTitleSize = titleFontSizeMap[titleFontSize]
+  const resolvedSubtitleSize = subtitleFontSizeMap[subtitleFontSize]
 
   const bgStyle: React.CSSProperties = backgroundImage
     ? {
@@ -80,7 +128,6 @@ export function HeroBlock({
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
-        // Overlay oscuro para legibilidad del texto sobre la imagen
         position: 'relative',
       }
     : {}
@@ -92,25 +139,28 @@ export function HeroBlock({
         color: textColor,
         padding: `${padding} 40px`,
         textAlign,
+        fontFamily,
         ...bgStyle,
       }}
     >
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
         <h1
           style={{
-            fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+            fontSize: resolvedTitleSize,
             fontWeight: 700,
             lineHeight: 1.1,
             marginBottom: '16px',
+            fontFamily,
           }}
         >
           {title}
         </h1>
         <p
           style={{
-            fontSize: 'clamp(1rem, 2.5vw, 1.25rem)',
+            fontSize: resolvedSubtitleSize,
             opacity: 0.85,
             marginBottom: '32px',
+            fontFamily,
           }}
         >
           {subtitle}
@@ -127,6 +177,7 @@ export function HeroBlock({
               fontWeight: 600,
               textDecoration: 'none',
               fontSize: '1rem',
+              fontFamily,
             }}
           >
             {ctaText}

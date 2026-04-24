@@ -2,6 +2,7 @@
 
 import React from 'react'
 import type { Config } from '@measured/puck'
+import { NavbarBlock, navbarBlockFields, navbarBlockDefaultProps } from '@/blocks/NavbarBlock'
 import { HeroBlock, heroBlockFields, heroBlockDefaultProps } from '@/blocks/HeroBlock'
 import { TextBlock, textBlockFields, textBlockDefaultProps } from '@/blocks/TextBlock'
 import { ImageBlock, imageBlockFields, imageBlockDefaultProps } from '@/blocks/ImageBlock'
@@ -12,7 +13,30 @@ import { ContactFormBlock, contactFormBlockFields, contactFormBlockDefaultProps 
 import { CardGridBlock, cardGridBlockFields, cardGridBlockDefaultProps } from '@/blocks/CardGridBlock'
 import { VideoBlock, videoBlockFields, videoBlockDefaultProps } from '@/blocks/VideoBlock'
 import { PricingBlock, pricingBlockFields, pricingBlockDefaultProps } from '@/blocks/PricingBlock'
+import { ProductGridBlock, productGridBlockFields, productGridBlockDefaultProps } from '@/blocks/ProductGridBlock'
+import { StatsBlock, statsBlockFields, statsBlockDefaultProps } from '@/blocks/StatsBlock'
+import { NewsletterBlock, newsletterBlockFields, newsletterBlockDefaultProps } from '@/blocks/NewsletterBlock'
 import { MediaPicker } from '@/components/MediaPicker'
+import { ColorPickerField } from '@/components/ColorPickerField'
+import { FontFamilyField } from '@/components/FontFamilyField'
+
+// Campo reutilizable de color para usar en cualquier bloque
+const colorField = (label: string) => ({
+  type: 'custom' as const,
+  label,
+  render: ({ value, onChange }: { value: unknown; onChange: (v: string) => void }) => (
+    <ColorPickerField value={value as string} onChange={onChange} />
+  ),
+})
+
+// Campo reutilizable de fuente para usar en cualquier bloque
+const fontFamilyField = (label: string) => ({
+  type: 'custom' as const,
+  label,
+  render: ({ value, onChange }: { value: unknown; onChange: (v: string) => void }) => (
+    <FontFamilyField value={value as string} onChange={onChange} />
+  ),
+})
 
 /**
  * Configuración principal de Puck.
@@ -24,14 +48,35 @@ import { MediaPicker } from '@/components/MediaPicker'
  * FASE 0: HeroBlock, TextBlock, ImageBlock, ButtonBlock, SeparatorBlock
  * FASE 1: GalleryBlock, ContactFormBlock, CardGridBlock
  * FASE 2: VideoBlock, PricingBlock — MediaPicker integrado en campos de imagen
+ * FASE 3.1: NavbarBlock, ProductGridBlock, StatsBlock, NewsletterBlock
  */
 export const puckConfig: Config = {
   components: {
+    NavbarBlock: {
+      label: 'Navbar / Menú',
+      fields: {
+        ...navbarBlockFields,
+        backgroundColor: colorField('Color de fondo'),
+        textColor: colorField('Color del texto'),
+        accentColor: colorField('Color de acento'),
+        logoImageUrl: {
+          type: 'custom',
+          label: 'Logo (imagen, opcional)',
+          render: ({ value, onChange }) => (
+            <MediaPicker value={value as string} onChange={onChange} label="Logo" />
+          ),
+        },
+      },
+      defaultProps: navbarBlockDefaultProps,
+      render: NavbarBlock,
+    },
     HeroBlock: {
       label: 'Hero',
       fields: {
         ...heroBlockFields,
-        // Sobreescribir el campo backgroundImage con el MediaPicker personalizado
+        backgroundColor: colorField('Color de fondo'),
+        textColor: colorField('Color del texto'),
+        fontFamily: fontFamilyField('Fuente'),
         backgroundImage: {
           type: 'custom',
           label: 'Imagen de fondo',
@@ -49,7 +94,11 @@ export const puckConfig: Config = {
     },
     TextBlock: {
       label: 'Texto',
-      fields: textBlockFields,
+      fields: {
+        ...textBlockFields,
+        textColor: colorField('Color del texto'),
+        fontFamily: fontFamilyField('Fuente'),
+      },
       defaultProps: textBlockDefaultProps,
       render: TextBlock,
     },
@@ -75,7 +124,10 @@ export const puckConfig: Config = {
     },
     ButtonBlock: {
       label: 'Botón',
-      fields: buttonBlockFields,
+      fields: {
+        ...buttonBlockFields,
+        primaryColor: colorField('Color principal'),
+      },
       defaultProps: buttonBlockDefaultProps,
       render: ButtonBlock,
     },
@@ -174,6 +226,62 @@ export const puckConfig: Config = {
       fields: pricingBlockFields,
       defaultProps: pricingBlockDefaultProps,
       render: PricingBlock,
+    },
+    ProductGridBlock: {
+      label: 'Grilla de Productos',
+      fields: {
+        ...productGridBlockFields,
+        backgroundColor: colorField('Color de fondo'),
+        textColor: colorField('Color del texto'),
+        accentColor: colorField('Color de acento'),
+        products: {
+          type: 'array',
+          label: 'Productos',
+          arrayFields: {
+            image: {
+              type: 'custom',
+              label: 'Imagen del producto',
+              render: ({ value, onChange }) => (
+                <MediaPicker value={value as string} onChange={onChange} label="Imagen del producto" />
+              ),
+            },
+            imageAlt: { type: 'text', label: 'Texto alternativo' },
+            category: { type: 'text', label: 'Categoría' },
+            name: { type: 'text', label: 'Nombre del producto' },
+            description: { type: 'text', label: 'Descripción breve' },
+            price: { type: 'text', label: 'Precio (ej: $85.000)' },
+            artisan: { type: 'text', label: 'Artesano/a (opcional)' },
+            ctaText: { type: 'text', label: 'Texto del botón' },
+            ctaUrl: { type: 'text', label: 'URL del botón' },
+          },
+          defaultItemProps: productGridBlockDefaultProps.products[0],
+          getItemSummary: (item: { name?: string }) => (item.name as string) || 'Producto',
+        },
+      },
+      defaultProps: productGridBlockDefaultProps,
+      render: ProductGridBlock,
+    },
+    StatsBlock: {
+      label: 'Estadísticas',
+      fields: {
+        ...statsBlockFields,
+        backgroundColor: colorField('Color de fondo'),
+        textColor: colorField('Color del texto'),
+        accentColor: colorField('Color del número'),
+      },
+      defaultProps: statsBlockDefaultProps,
+      render: StatsBlock,
+    },
+    NewsletterBlock: {
+      label: 'Suscripción / Newsletter',
+      fields: {
+        ...newsletterBlockFields,
+        backgroundColor: colorField('Color de fondo'),
+        textColor: colorField('Color del texto'),
+        accentColor: colorField('Color del botón'),
+      },
+      defaultProps: newsletterBlockDefaultProps,
+      render: NewsletterBlock,
     },
   },
 }

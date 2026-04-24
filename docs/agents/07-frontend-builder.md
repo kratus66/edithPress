@@ -289,3 +289,24 @@ export const puckConfig: Config = {
 **Última actualización**: 2026-04-14
 **Completadas**: BUILDER-01, BUILDER-02, BUILDER-03, BUILDER-04
 **Próxima tarea**: BUILDER-05 (FASE 1) — Completar los 8 bloques del MVP (GalleryBlock, ContactFormBlock, CardGridBlock)
+
+---
+
+## Sprint 03.1 — Actividades Realizadas (2026-04-24)
+
+### BUILDER-SPRINT03.1-01: Todos los bloques nuevos implementados y registrados
+Los siguientes bloques existen en `apps/builder/src/blocks/` y están registrados en `puck-config.tsx`:
+
+- **NavbarBlock.tsx** — logo (texto/imagen), navLinks editables, sticky, búsqueda, carrito
+- **ProductGridBlock.tsx** — grilla 2/3/4 col, artesano opcional, cardStyle (shadow/border/minimal)
+- **StatsBlock.tsx** — estadísticas con emoji, layout row/row-with-dividers, padding configurable
+- **NewsletterBlock.tsx** — layout centered/side-by-side, SOLO visual en builder (sin submit real)
+
+### BUILDER-SPRINT03.1-02: Orden de bloques en puck-config
+Orden visual optimizado para el usuario:
+Navbar → Hero → Text → Image → Button → ProductGrid → CardGrid → Gallery → Stats → Video → Pricing → ContactForm → Newsletter → Separator
+
+### BUILDER-SPRINT03.1-03: Verificación TypeScript
+- `pnpm exec tsc --noEmit` — sin errores TypeScript
+
+**Estado**: BUILDER actualizado a FASE 3.1

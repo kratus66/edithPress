@@ -293,3 +293,26 @@ bootstrap()
 **Fase activa**: FASE 0
 **Última actualización**: 2026-04-13
 **Próxima tarea**: API-05 — Módulo auth (register, login, refresh, logout, verify-email)
+
+---
+
+## Sprint 03.1 — Actividades Realizadas (2026-04-24)
+
+### BACK-SPRINT03.1-01: Módulo Newsletter
+- Creado `apps/api/src/modules/newsletter/` con:
+  - `newsletter.module.ts` — registra el módulo en NestJS
+  - `newsletter.controller.ts` — 4 endpoints bajo `/sites/:siteId/newsletter`
+  - `newsletter.service.ts` — lógica de negocio
+  - `dto/newsletter.dto.ts` — SubscribeDto con @IsEmail, @Transform (lowercase+trim)
+
+### Endpoints Implementados
+- `POST /sites/:siteId/newsletter/subscribe` — público, rate limit 3/h/IP, idempotente
+- `GET /sites/:siteId/newsletter/subscribers` — privado, JWT + TenantGuard, paginado
+- `GET /sites/:siteId/newsletter/export` — privado, descarga CSV
+- `DELETE /sites/:siteId/newsletter/unsubscribe` — público, soft delete, token base64
+
+### BACK-SPRINT03.1-02: Registro en AppModule
+- `NewsletterModule` importado y registrado en `apps/api/src/app.module.ts`
+- Build de API verificado sin errores TypeScript
+
+**Estado**: BACK actualizado a FASE 3.1

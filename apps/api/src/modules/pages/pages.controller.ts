@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Patch,
   Delete,
   Body,
@@ -12,7 +13,13 @@ import {
   UseGuards,
 } from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger'
+import { IsArray } from 'class-validator'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
+
+class SaveContentDto {
+  @IsArray()
+  blocks!: unknown[]
+}
 import { TenantGuard } from '../../common/guards/tenant.guard'
 import { RolesGuard } from '../../common/guards/roles.guard'
 import { CurrentUser } from '../../common/decorators/current-user.decorator'
@@ -104,6 +111,21 @@ export class PagesController {
     @Param('pageId') pageId: string,
   ) {
     await this.pagesService.remove(pageId, siteId, user.tenantId)
+  }
+
+  // ──────────── PUT /sites/:siteId/pages/:pageId/content ──
+
+  @Put(':pageId/content')
+  @UseGuards(RolesGuard)
+  @Roles('OWNER', 'EDITOR')
+  @ApiOperation({ summary: 'Guardar contenido (bloques Puck) de una página' })
+  async saveContent(
+    @CurrentUser() user: JwtPayload,
+    @Param('siteId') siteId: string,
+    @Param('pageId') pageId: string,
+    @Body() dto: SaveContentDto,
+  ) {
+    return { data: await this.pagesService.saveContent(pageId, siteId, user.tenantId, dto.blocks) }
   }
 
   // ──────────── POST /sites/:siteId/pages/:pageId/publish ──

@@ -35,27 +35,70 @@ function MediaModal({ isOpen, onClose, onSelect }: MediaModalProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const loadMedia = useCallback(() => {
+    setLoading(true)
+    setError(null)
+    builderApi
+      .get<MediaListResponse>('/media?type=image&limit=24')
+      .then((res) => { setItems(res.data ?? []) })
+      .catch(() => { setError('No se pudo cargar la biblioteca de medios.') })
+      .finally(() => { setLoading(false) })
+  }, [])
 
   // Load media when modal opens
   useEffect(() => {
     if (!isOpen) return
+    loadMedia()
+  }, [isOpen, loadMedia])
 
-    setLoading(true)
-    setError(null)
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
 
-    builderApi
-      .get<MediaListResponse>('/media?type=image&limit=24')
-      .then((res) => {
-        setItems(res.data ?? [])
+    setUploading(true)
+    setUploadError(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+
+      // Get token from localStorage or cookie (same logic as api-client)
+      const token = typeof window !== 'undefined'
+        ? (localStorage.getItem('edithpress_access_token') ?? getCookieToken())
+        : null
+
+      const res = await fetch('/api/v1/media/upload', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
       })
-      .catch(() => {
-        setError('No se pudo cargar la biblioteca de medios.')
-      })
-      .finally(() => {
-        setLoading(false)
-      })
-  }, [isOpen])
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as Record<string, unknown>
+        const msg = (body?.error as Record<string, unknown>)?.message
+        throw new Error(typeof msg === 'string' ? msg : `Error ${res.status}`)
+      }
+
+      // Reload the library after successful upload
+      loadMedia()
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Error al subir la imagen')
+    } finally {
+      setUploading(false)
+      // Reset input so the same file can be re-selected
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  function getCookieToken(): string | null {
+    const match = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/)
+    return match ? decodeURIComponent(match[1]) : null
+  }
 
   // Close on Escape
   useEffect(() => {
@@ -114,33 +157,56 @@ function MediaModal({ isOpen, onClose, onSelect }: MediaModalProps) {
             borderBottom: '1px solid #e5e7eb',
           }}
         >
-          <h2
-            style={{
-              margin: 0,
-              fontSize: '1rem',
-              fontWeight: 600,
-              color: '#111827',
-            }}
-          >
+          <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: '#111827' }}>
             Biblioteca de medios
           </h2>
-          <button
-            onClick={onClose}
-            aria-label="Cerrar biblioteca"
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '1.25rem',
-              color: '#6b7280',
-              lineHeight: 1,
-              padding: '4px',
-              borderRadius: '4px',
-            }}
-          >
-            x
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+              style={{ display: 'none' }}
+              onChange={handleUpload}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              style={{
+                padding: '6px 14px',
+                backgroundColor: uploading ? '#9ca3af' : '#2563eb',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: uploading ? 'not-allowed' : 'pointer',
+                fontSize: '0.8125rem',
+                fontWeight: 500,
+              }}
+            >
+              {uploading ? 'Subiendo...' : '+ Subir imagen'}
+            </button>
+            <button
+              onClick={onClose}
+              aria-label="Cerrar biblioteca"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '1.25rem',
+                color: '#6b7280',
+                lineHeight: 1,
+                padding: '4px',
+                borderRadius: '4px',
+              }}
+            >
+              ×
+            </button>
+          </div>
         </div>
+        {uploadError && (
+          <div style={{ padding: '8px 20px', backgroundColor: '#fef2f2', color: '#dc2626', fontSize: '0.8125rem' }}>
+            {uploadError}
+          </div>
+        )}
 
         {/* Contenido */}
         <div style={{ flex: 1, overflow: 'auto', padding: '16px 20px' }}>

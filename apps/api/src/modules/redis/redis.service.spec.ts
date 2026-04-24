@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { RedisService } from './redis.service'
-import { REDIS_CLIENT } from './redis.module'
+import { REDIS_CLIENT } from './redis.constants'
 
 // ─── Mock del cliente ioredis ─────────────────────────────────────────────────
 //

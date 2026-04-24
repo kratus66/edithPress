@@ -276,3 +276,29 @@ Permissions-Policy: camera=(), microphone=(), geolocation=()
 **Fase activa**: FASE 0
 **Última actualización**: 2026-04-15
 **Próxima tarea**: Auditoría de seguridad del módulo auth (FASE 1), DOMPurify en content saving, verificación webhook Stripe
+
+---
+
+## Sprint 03.1 — Actividades Realizadas (2026-04-24)
+
+### SEC-SPRINT03.1-01: Auditoría NavbarBlock
+- `sanitizeUrl()` implementada en renderer — bloquea `javascript:` y `data:` URIs
+- Verificado: no hay `dangerouslySetInnerHTML` en NavbarBlock
+- Limitación documentada: target="_blank" pendiente para v2 (agregar rel="noopener noreferrer")
+
+### SEC-SPRINT03.1-02: Auditoría NewsletterBlock
+- Rate limiting: `@Throttle({ default: { limit: 3, ttl: 3_600_000 } })` — 3/h/IP en POST /subscribe
+- Email sanitización: lowercase + trim vía `@Transform` antes de guardar
+- Respuesta idempotente: siempre `{ success: true }` — no revela si email existía
+- GET /subscribers protegido con JwtAuthGuard + TenantGuard
+
+### SEC-SPRINT03.1-03: Auditoría ProductGridBlock
+- Imágenes via `next/image` — proxy recodifica, mitiga SVGs maliciosos
+- Tracking pixel aceptado como comportamiento conocido (tenants de confianza)
+- Mixed content HTTP/HTTPS documentado como limitación
+
+### SEC-SPRINT03.1-04: Documentación
+- Creado `docs/security-audit-sprint03.1.md` con hallazgos y decisiones
+- Recomendaciones para sprints futuros: honeypot, CSP para imágenes, token criptográfico unsubscribe
+
+**Estado**: SEC actualizado a FASE 3.1

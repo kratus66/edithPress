@@ -7,7 +7,7 @@ export type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'error'
 interface UseAutosaveOptions {
   /** ID de la página — incluido para contexto/debug */
   pageId: string
-  /** Función que persiste el data en la API */
+  /** Función que persiste el data en la API. Recibe null si aún no hay cambios. */
   onSave: (data: any) => Promise<void>
   /** Milisegundos de inactividad antes de guardar (default: 3000) */
   debounceMs?: number

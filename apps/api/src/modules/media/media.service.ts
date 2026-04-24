@@ -106,7 +106,9 @@ export class MediaService {
       }),
     )
 
-    const cdnBase = this.config.get<string>('AWS_CDN_URL') ?? `https://${this.bucket}.s3.amazonaws.com`
+    const endpoint = this.config.get<string>('AWS_ENDPOINT')
+    const cdnBase = this.config.get<string>('AWS_CDN_URL')
+      ?? (endpoint ? `${endpoint}/${this.bucket}` : `https://${this.bucket}.s3.amazonaws.com`)
     const url = `${cdnBase}/${s3Key}`
 
     const media = await this.db.mediaFile.create({
@@ -128,18 +130,28 @@ export class MediaService {
 
   // ──────────────────────────────────────── LIST ──
 
-  async findAll(tenantId: string, pagination: PaginationDto) {
+  async findAll(tenantId: string, pagination: PaginationDto, type?: string) {
     const page = pagination.page ?? 1
     const limit = pagination.limit ?? 20
 
+    const typeFilter = type === 'image'
+      ? { startsWith: 'image/' }
+      : type === 'video'
+        ? { startsWith: 'video/' }
+        : type === 'document'
+          ? { startsWith: 'application/' }
+          : undefined
+
+    const where = { tenantId, ...(typeFilter ? { fileType: typeFilter } : {}) }
+
     const [items, total] = await this.db.$transaction([
       this.db.mediaFile.findMany({
-        where: { tenantId },
+        where,
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { createdAt: 'desc' },
       }),
-      this.db.mediaFile.count({ where: { tenantId } }),
+      this.db.mediaFile.count({ where }),
     ])
 
     return { items, total, page, limit }

@@ -8,14 +8,21 @@
  * En 401 redirige al login del admin (NEXT_PUBLIC_APP_URL/login).
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
-const ADMIN_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+// URL relativa: el builder proxea /api/v1/* al API real (next.config.js rewrites)
+// Esto elimina el CORS porque el browser habla con localhost:3002 (mismo origen)
+const BASE_URL = ''
+const ADMIN_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3010'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function getTokenFromCookie(): string | null {
+  const match = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/)
+  return match ? decodeURIComponent(match[1]) : null
+}
+
 function getToken(): string | null {
   if (typeof window === 'undefined') return null
-  return localStorage.getItem('edithpress_access_token')
+  return localStorage.getItem('edithpress_access_token') ?? getTokenFromCookie()
 }
 
 function authHeaders(extra: Record<string, string> = {}): HeadersInit {

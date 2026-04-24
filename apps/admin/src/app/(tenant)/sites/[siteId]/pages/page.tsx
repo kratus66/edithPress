@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button, Badge, Card, Alert } from '@edithpress/ui'
 import { api, getApiErrorMessage } from '@/lib/api-client'
@@ -87,7 +87,7 @@ function PageRow({
             {STATUS_LABELS[page.status]}
           </Badge>
 
-          <Link href={`/builder/${siteId}/${page.id}`}>
+          <a href={`${process.env.NEXT_PUBLIC_BUILDER_URL ?? 'http://localhost:3002'}/builder/${siteId}/${page.id}`}>
             <Button variant="outline" size="sm">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mr-1">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -95,7 +95,7 @@ function PageRow({
               </svg>
               Editar
             </Button>
-          </Link>
+          </a>
 
           {!confirmDelete ? (
             <button
@@ -169,9 +169,9 @@ const FILTERS: { label: string; value: Filter }[] = [
 export default function SitePagesPage({
   params,
 }: {
-  params: Promise<{ siteId: string }>
+  params: { siteId: string }
 }) {
-  const { siteId } = use(params)
+  const { siteId } = params
 
   const [pages, setPages] = useState<SitePage[]>([])
   const [isLoading, setIsLoading] = useState(true)

@@ -5,6 +5,7 @@ export interface TextBlockProps {
   content: string
   fontSize: 'sm' | 'base' | 'lg' | 'xl'
   textColor: string
+  fontFamily: string
   padding: 'none' | 'sm' | 'md' | 'lg'
   maxWidth: 'narrow' | 'normal' | 'wide' | 'full'
 }
@@ -39,13 +40,14 @@ export const textBlockFields: Fields<TextBlockProps> = {
     type: 'radio',
     label: 'Tamaño de fuente',
     options: [
-      { label: 'Pequeño', value: 'sm' },
-      { label: 'Normal', value: 'base' },
-      { label: 'Grande', value: 'lg' },
-      { label: 'Extra grande', value: 'xl' },
+      { label: 'S', value: 'sm' },
+      { label: 'M', value: 'base' },
+      { label: 'L', value: 'lg' },
+      { label: 'XL', value: 'xl' },
     ],
   },
   textColor: { type: 'text', label: 'Color del texto (hex)' },
+  fontFamily: { type: 'text', label: 'Fuente' },
   padding: {
     type: 'radio',
     label: 'Espaciado interno',
@@ -72,16 +74,18 @@ export const textBlockDefaultProps: TextBlockProps = {
   content: '<p>Escribe tu contenido aquí. Puedes usar <strong>negrita</strong>, <em>cursiva</em> o <a href="#">enlaces</a>.</p>',
   fontSize: 'base',
   textColor: '#111827',
+  fontFamily: 'inherit',
   padding: 'md',
   maxWidth: 'normal',
 }
 
-export function TextBlock({ content, fontSize, textColor, padding, maxWidth }: TextBlockProps) {
+export function TextBlock({ content, fontSize, textColor, fontFamily = 'inherit', padding, maxWidth }: TextBlockProps) {
   return (
     <div
       style={{
         padding: paddingMap[padding],
         color: textColor,
+        fontFamily,
       }}
     >
       <div
@@ -90,6 +94,7 @@ export function TextBlock({ content, fontSize, textColor, padding, maxWidth }: T
           margin: '0 auto',
           fontSize: fontSizeMap[fontSize],
           lineHeight: 1.7,
+          fontFamily,
         }}
         // El contenido viene del CMS — solo se renderiza en el editor,
         // controlado por el propietario del sitio (no entrada de usuarios finales)

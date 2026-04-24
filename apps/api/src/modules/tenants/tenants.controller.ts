@@ -42,6 +42,16 @@ export class TenantsController {
     return { data: await this.tenantsService.create(user.sub, dto) }
   }
 
+  // ─────────────────────────────────── GET /tenants/me/stats ──
+
+  @Get('me/stats')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Stats del dashboard para el tenant autenticado' })
+  @ApiResponse({ status: 200, description: 'Estadísticas del tenant' })
+  async getMyStats(@CurrentUser() user: JwtPayload) {
+    return { data: await this.tenantsService.getStats(user.tenantId) }
+  }
+
   // ─────────────────────────────────────────── GET /tenants/:id ──
 
   /**

@@ -28,6 +28,10 @@ describe('SitesService', () => {
     },
     template: {
       findUnique: jest.fn(),
+      update: jest.fn(),
+    },
+    page: {
+      create: jest.fn(),
     },
     /**
      * $transaction cubre dos formas:
@@ -150,9 +154,11 @@ describe('SitesService', () => {
 
     it('should pass when templateId exists', async () => {
       // Arrange
-      mockDb.template.findUnique.mockResolvedValue({ id: 'tpl-1' })
+      mockDb.template.findUnique.mockResolvedValue({ id: 'tpl-1', content: [] })
       const site = createSite({ tenantId: 'tenant-1', templateId: 'tpl-1' })
       mockDb.site.create.mockResolvedValue(site)
+      mockDb.page.create.mockResolvedValue({ id: 'page-001' })
+      mockDb.template.update.mockResolvedValue({ id: 'tpl-1', usageCount: 1 })
 
       // Act
       const result = await service.create('tenant-1', { name: 'Site', templateId: 'tpl-1' })

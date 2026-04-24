@@ -39,7 +39,7 @@ function SiteCard({ id, name, description, isPublished, updatedAt, onDelete, onP
         <Link href={`/sites/${id}`} className="flex-1">
           <Button variant="outline" size="sm" className="w-full">Ver sitio</Button>
         </Link>
-        <Link href={`/builder/${id}`} className="flex-1">
+        <Link href={`/sites/${id}/pages`} className="flex-1">
           <Button size="sm" className="w-full">Editar</Button>
         </Link>
         <div className="relative">

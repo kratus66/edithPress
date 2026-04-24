@@ -1,6 +1,6 @@
 'use client'
 
-import { use, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -340,7 +340,7 @@ function CustomDomainSection({ siteId }: { siteId: string }) {
 
       {/* Modal de confirmacion de eliminacion */}
       <Modal
-        isOpen={showDeleteModal}
+        open={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         title="Eliminar dominio personalizado"
       >
@@ -373,9 +373,9 @@ function CustomDomainSection({ siteId }: { siteId: string }) {
 export default function SiteSettingsPage({
   params,
 }: {
-  params: Promise<{ siteId: string }>
+  params: { siteId: string }
 }) {
-  const { siteId } = use(params)
+  const { siteId } = params
 
   const [success, setSuccess] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)

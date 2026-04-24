@@ -92,3 +92,21 @@ export type { StatCardProps }                      from './components/StatCard'
 // StepIndicator
 export { StepIndicator }                           from './components/StepIndicator'
 export type { StepIndicatorProps }                 from './components/StepIndicator'
+
+// ── Componentes Sprint 03.1 ──────────────────────────────
+
+// ProductCard
+export { ProductCard }                             from './components/ProductCard'
+export type { ProductCardProps }                   from './components/ProductCard'
+
+// NewsletterForm
+export { NewsletterForm }                          from './components/NewsletterForm'
+export type { NewsletterFormProps }                from './components/NewsletterForm'
+
+// StatItem
+export { StatItem }                                from './components/StatItem'
+export type { StatItemProps }                      from './components/StatItem'
+
+// CartBadge
+export { CartBadge }                               from './components/CartBadge'
+export type { CartBadgeProps }                     from './components/CartBadge'

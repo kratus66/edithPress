@@ -11,15 +11,20 @@ import { RedisService } from '../redis/redis.service'
 
 // ─── Mock dns.promises ────────────────────────────────────────────────────────
 //
-// Mockeamos el módulo 'dns' para que resolveTxt no haga consultas reales.
+// jest.mock() es hoisted por ts-jest antes de que se inicialicen las variables
+// con const/let (TDZ). Por eso no se puede referenciar una variable en la
+// factory. En su lugar, usamos jest.fn() inline y luego obtenemos la referencia
+// del módulo ya mockeado vía require().
 //
-const mockResolveTxt = jest.fn()
-
 jest.mock('dns', () => ({
   promises: {
-    resolveTxt: mockResolveTxt,
+    resolveTxt: jest.fn(),
   },
 }))
+
+// require('dns') retorna el módulo mockeado — ts-jest hoisted jest.mock arriba de los imports
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const mockResolveTxt = (require('dns') as typeof import('dns')).promises.resolveTxt as jest.Mock
 
 // ─────────────────────────────────────────────────────────────────────────────
 
