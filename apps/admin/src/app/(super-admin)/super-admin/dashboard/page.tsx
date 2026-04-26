@@ -105,24 +105,24 @@ export default function SuperAdminDashboardPage() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard
           label="Total tenants"
-          value={stats?.totalTenants.toLocaleString() ?? '—'}
+          value={stats?.totalTenants?.toLocaleString() ?? '—'}
           sub={`+${stats?.newThisWeek ?? 0} esta semana`}
           color="primary"
         />
         <KpiCard
           label="Nuevos esta semana"
-          value={stats?.newThisWeek.toLocaleString() ?? '—'}
+          value={stats?.newThisWeek?.toLocaleString() ?? '—'}
           color="orange"
         />
         <KpiCard
           label="MRR"
-          value={stats ? `$${stats.mrr.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+          value={stats?.mrr != null ? `$${stats.mrr.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
           sub="Ingresos recurrentes mensuales"
           color="green"
         />
         <KpiCard
           label="Sitios publicados"
-          value={stats?.publishedSites.toLocaleString() ?? '—'}
+          value={stats?.publishedSites?.toLocaleString() ?? '—'}
           color="primary"
         />
       </div>

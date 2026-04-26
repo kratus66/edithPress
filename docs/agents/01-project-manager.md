@@ -64,6 +64,15 @@ Objetivo: E-commerce, blog, plugins, white-label.
 - [ ] Deploy en staging
 - [x] Tests E2E del flujo auth completo (17 tests)
 
+### Sprint 03.1 — Estado Final (Cerrado 2026-04-25)
+- [x] NavbarBlock registrado en builder + renderer
+- [x] ProductGridBlock creado en builder + renderer
+- [x] StatsBlock creado en builder + renderer
+- [x] NewsletterBlock creado en builder + renderer
+- [x] Endpoint newsletter subscription implementado (apps/api/src/modules/newsletter/)
+- [x] Todos los builds pasan sin errores TypeScript
+- [x] Tests: 167 pasando, 0 fallando (sprint 03.1 + fix bugs)
+
 ### FASE 2 — v1 (Sprint 03 — EN PROGRESO desde 2026-04-19)
 
 > Agentes ejecutando en paralelo. Ver estado detallado en la sección "Sprint 02".
@@ -212,7 +221,7 @@ chore/{nombre}→ setup, configuración, docs
 | Integration tests: endpoints Sites | ✅ Done | `sites.e2e-spec.ts` — 8 casos, tenant isolation cubierto |
 | Integration tests: endpoints Pages | ✅ Done | `pages.e2e-spec.ts` — 5 casos + versioning |
 | CI pipeline con tests (Postgres + Redis) | ✅ Done | `ci.yml` — Postgres 16 + Redis 7, unit + e2e jobs |
-| Verificar cobertura actual | ✅ Done | 126 tests totales (78 unit + 48 e2e), 100% passing |
+| Verificar cobertura actual | ✅ Done | 167 tests totales, 100% passing |
 
 **Cobertura por módulo (2026-04-19):**
 | Módulo | Statements | Branches | Estado |
@@ -243,8 +252,9 @@ chore/{nombre}→ setup, configuración, docs
 
 ## Estado Actual
 **Fase activa**: FASE 2 — v1 / Sprint 03 (iniciado 2026-04-19)
-**Última actualización**: 2026-04-19
+**Última actualización**: 2026-04-25
 **Progreso Sprint 02**: ✅ CERRADO — 126 tests passing (78 unit + 48 e2e)
+**Progreso Sprint 03.1**: ✅ CERRADO — 167 tests passing, 4 bloques nuevos
 **Sprint 03**: Prompts disponibles en docs/prompts/sprint-03-prompts.md
 **Agentes Sprint 03**: 09 (DevOps/staging) → 04 (DB) → 05 (Backend) + 12 (UX) → 06 + 07 + 08 → 10 + 11
 

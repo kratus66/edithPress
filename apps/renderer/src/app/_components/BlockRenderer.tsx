@@ -13,6 +13,9 @@ import { NavbarBlock, type NavbarBlockProps } from './blocks/NavbarBlock'
 import { ProductGridBlock, type ProductGridBlockProps } from './blocks/ProductGridBlock'
 import { StatsBlock, type StatsBlockProps } from './blocks/StatsBlock'
 import { NewsletterBlock, type NewsletterBlockProps } from './blocks/NewsletterBlock'
+import { CategoryGridBlock, type CategoryGridBlockProps } from './blocks/CategoryGridBlock'
+import { SplitContentBlock, type SplitContentBlockProps } from './blocks/SplitContentBlock'
+import { FooterBlock, type FooterBlockProps } from './blocks/FooterBlock'
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
@@ -38,6 +41,9 @@ export type Block =
   | { type: 'ProductGridBlock'; props: ProductGridBlockProps }
   | { type: 'StatsBlock'; props: StatsBlockProps }
   | { type: 'NewsletterBlock'; props: Omit<NewsletterBlockProps, 'siteId'> }
+  | { type: 'CategoryGridBlock'; props: CategoryGridBlockProps }
+  | { type: 'SplitContentBlock'; props: SplitContentBlockProps }
+  | { type: 'FooterBlock'; props: Omit<FooterBlockProps, 'siteId'> }
 
 // ── Switch tipado tipo → componente ───────────────────────────────────────────
 
@@ -90,6 +96,15 @@ function renderBlock(block: Block, index: number, siteId?: string): React.ReactN
     case 'NewsletterBlock':
       return <NewsletterBlock key={index} {...block.props} siteId={siteId} />
 
+    case 'CategoryGridBlock':
+      return <CategoryGridBlock key={index} {...block.props} />
+
+    case 'SplitContentBlock':
+      return <SplitContentBlock key={index} {...block.props} />
+
+    case 'FooterBlock':
+      return <FooterBlock key={index} {...block.props} siteId={siteId} />
+
     default: {
       // TypeScript debería prevenir esta rama con exhaustive check,
       // pero si la API devuelve un tipo desconocido lo manejamos sin explotar.
@@ -122,6 +137,7 @@ function renderBlock(block: Block, index: number, siteId?: string): React.ReactN
 interface BlockRendererProps {
   blocks: Block[]
   siteId?: string
+  rootProps?: Record<string, unknown>
 }
 
 /**
@@ -131,30 +147,52 @@ interface BlockRendererProps {
  * performance (sin JS extra en el cliente salvo ContactFormBlock y NewsletterBlock).
  *
  * Uso:
- *   <BlockRenderer blocks={page.content} siteId={site.id} />
+ *   <BlockRenderer blocks={page.content} siteId={site.id} rootProps={page.rootProps} />
  */
-export function BlockRenderer({ blocks, siteId }: BlockRendererProps) {
+export function BlockRenderer({ blocks, siteId, rootProps }: BlockRendererProps) {
+  const fontHeading = (rootProps?.fontHeading as string) || ''
+  const fontBody = (rootProps?.fontBody as string) || ''
+  const colorPrimary = (rootProps?.colorPrimary as string) || '#b45309'
+  const colorText = (rootProps?.colorText as string) || '#1e293b'
+  const colorBackground = (rootProps?.colorBackground as string) || '#ffffff'
+
+  const cssVars = `
+    :root {
+      ${fontHeading ? `--ep-font-heading: ${fontHeading};` : ''}
+      ${fontBody ? `--ep-font-body: ${fontBody};` : ''}
+      --ep-color-primary: ${colorPrimary};
+      --ep-color-text: ${colorText};
+      --ep-color-bg: ${colorBackground};
+    }
+  `
+
   if (!blocks?.length) {
     return (
-      <main
-        style={{
-          display: 'flex',
-          minHeight: '60vh',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#9ca3af',
-          fontSize: '1rem',
-        }}
-      >
-        <p>Esta página no tiene contenido publicado.</p>
-      </main>
+      <>
+        <style dangerouslySetInnerHTML={{ __html: cssVars }} />
+        <main
+          style={{
+            display: 'flex',
+            minHeight: '60vh',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#9ca3af',
+            fontSize: '1rem',
+          }}
+        >
+          <p>Esta página no tiene contenido publicado.</p>
+        </main>
+      </>
     )
   }
 
   return (
-    <main>
-      {blocks.map((block, index) => renderBlock(block, index, siteId))}
-    </main>
+    <>
+      <style dangerouslySetInnerHTML={{ __html: cssVars }} />
+      <main>
+        {blocks.map((block, index) => renderBlock(block, index, siteId))}
+      </main>
+    </>
   )
 }
 

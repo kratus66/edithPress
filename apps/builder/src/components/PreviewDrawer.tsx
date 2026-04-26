@@ -28,7 +28,15 @@ export function PreviewDrawer({
 }: PreviewDrawerProps) {
   const [viewport, setViewport] = useState<PreviewViewport>('desktop')
 
-  // URL del renderer con el subdominio del tenant: {tenantSlug}.localhost:3003/{pageSlug}
+  // URL de activación de draft mode (pasa por el proxy seguro del builder).
+  // El builder redirige al renderer /api/preview que activa draft mode y
+  // redirige a localhost:3003/{pageSlug}?__t={tenantSlug} — el middleware del
+  // renderer extrae el tenant del query param cuando el cookie de draft está activo.
+  const draftActivationUrl = tenantSlug
+    ? `/api/preview?tenantSlug=${encodeURIComponent(tenantSlug)}&pageSlug=${encodeURIComponent(pageSlug || 'home')}`
+    : rendererUrl
+
+  // URL directa del renderer (para la barra inferior informativa)
   const rendererBase = new URL(rendererUrl)
   const tenantHost = tenantSlug ? `${tenantSlug}.${rendererBase.host}` : rendererBase.host
   const pagePath = !pageSlug || pageSlug === 'home' ? '/' : `/${pageSlug}`
@@ -36,11 +44,8 @@ export function PreviewDrawer({
 
   // Abrir en nueva pestaña vía el proxy seguro del builder
   const handleOpenNewTab = useCallback(() => {
-    const url = tenantSlug
-      ? `/api/preview?tenantSlug=${tenantSlug}&pageSlug=${pageSlug || 'home'}`
-      : previewUrl
-    window.open(url, '_blank', 'noopener,noreferrer')
-  }, [tenantSlug, pageSlug, previewUrl])
+    window.open(draftActivationUrl, '_blank', 'noopener,noreferrer')
+  }, [draftActivationUrl])
 
   if (!isOpen) return null
 
@@ -118,11 +123,11 @@ export function PreviewDrawer({
         <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-gray-900">
           {viewport === 'desktop' ? (
             <iframe
-              key={`desktop-${previewUrl}`}
-              src={previewUrl}
+              key={`desktop-${draftActivationUrl}`}
+              src={draftActivationUrl}
               title="Vista previa — escritorio"
               className="h-full w-full border-0 bg-white"
-              sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
             />
           ) : (
             // Modo móvil: iframe centrado a 390px con fondo oscuro alrededor
@@ -132,12 +137,12 @@ export function PreviewDrawer({
                 style={{ width: '390px', height: '844px', maxHeight: 'calc(100% - 32px)' }}
               >
                 <iframe
-                  key={`mobile-${previewUrl}`}
-                  src={previewUrl}
+                  key={`mobile-${draftActivationUrl}`}
+                  src={draftActivationUrl}
                   title="Vista previa — móvil"
                   className="h-full w-full border-0 bg-white"
                   style={{ width: '390px' }}
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"
                 />
               </div>
             </div>

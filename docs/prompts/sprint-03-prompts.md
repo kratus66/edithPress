@@ -1280,20 +1280,32 @@ DÍA 6-7:
 
 ---
 
-## Estado Sprint 03.1 — Expansión de Bloques
-**Fecha de cierre**: 2026-04-24
+## Estado Sprint 03.1 — Expansión de Bloques (Cerrado 2026-04-25)
 
-- [✅] NavbarBlock registrado y renderizando (con sanitizeUrl en renderer)
+- [✅] NavbarBlock registrado y renderizando
 - [✅] ProductGridBlock creado y renderizando
 - [✅] StatsBlock creado y renderizando
-- [✅] NewsletterBlock creado y renderizando (con lógica real de submit en renderer)
-- [✅] Endpoint newsletter subscription implementado (POST/GET/DELETE + export CSV)
-- [✅] NewsletterSubscriber modelo creado en Prisma + migración aplicada
-- [✅] Módulo NewsletterModule registrado en AppModule
-- [✅] Todos los builds pasan sin errores TypeScript (builder, renderer, api, ui)
-- [✅] docs/block-schemas.md creado (contrato inmutable builder ↔ renderer)
-- [✅] docs/block-catalog.md creado (catálogo + historias de usuario + tipos de sitio)
-- [✅] docs/security-audit-sprint03.1.md creado (sanitizeUrl, rate limiting, auditoría)
-- [✅] newsletter.service.spec.ts — 10 tests, 100% cobertura del servicio
-- [✅] packages/ui: ProductCard, NewsletterForm, StatItem, CartBadge creados
-- [⚠️] 2 tests pre-existentes fallando (pages.service y auth.service — no relacionados con Sprint 03.1)
+- [✅] NewsletterBlock creado y renderizando
+- [✅] Endpoint newsletter subscription implementado
+- [✅] Todos los builds pasan sin errores TypeScript
+- [✅] 167 tests pasando (2 bugs de regresión corregidos)
+
+### Bugs corregidos en sprint 03.1
+- pages.service.spec.ts: mock `site.update` faltante en test publish
+- auth.service.spec.ts: test desactualizado — login() ya no lanza InternalServerErrorException para usuarios sin tenant (ahora retorna token SUPER_ADMIN)
+
+## Estado Sprint 03.2 — Bloques Avanzados (2026-04-25)
+- [✅] CategoryGridBlock — builder + renderer
+- [✅] SplitContentBlock — builder + renderer
+- [✅] FooterBlock — builder + renderer (FooterNewsletter 'use client' separado)
+- [✅] HeroBlock enhanced — eyebrow + 2 CTAs + overlay (retro-compatible, overlayOpacity default 0)
+- [✅] ProductGridBlock enhanced — eyebrow + viewAll + categoryPosition + showCta (retro-compatible)
+- [✅] Build completo sin errores TypeScript (4/4 apps: builder, renderer, api, admin)
+- [✅] 48 tests nuevos — 84 builder total, 167 API total, todos en verde
+- [✅] Auditoría de seguridad — sanitizeUrl() en todos los hrefs de usuario, 1 corrección menor (email validation regex en FooterNewsletter)
+- [✅] 17 bloques registrados en puck-config
+
+### Bloques totales en EdithPress tras Sprint 03.2: 17
+NavbarBlock, HeroBlock, TextBlock, ImageBlock, ButtonBlock, SeparatorBlock,
+GalleryBlock, ContactFormBlock, CardGridBlock, VideoBlock, PricingBlock,
+ProductGridBlock, StatsBlock, NewsletterBlock, CategoryGridBlock, SplitContentBlock, FooterBlock

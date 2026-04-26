@@ -14,6 +14,13 @@ export interface HeroBlockProps {
   fontFamily: string
   titleFontSize: 'sm' | 'md' | 'lg' | 'xl' | 'xxl'
   subtitleFontSize: 'sm' | 'md' | 'lg' | 'xl'
+  // NUEVO Sprint 03.2 — props opcionales, defaults neutros para retro-compatibilidad
+  eyebrowText?: string
+  cta2Text?: string
+  cta2Url?: string
+  cta2Variant?: 'solid' | 'outline' | 'ghost'
+  overlayColor?: string
+  overlayOpacity?: number
 }
 
 const paddingMap: Record<HeroBlockProps['paddingY'], string> = {
@@ -87,6 +94,21 @@ export const heroBlockFields: Fields<HeroBlockProps> = {
       { label: 'Extra grande', value: 'xl' },
     ],
   },
+  // NUEVO Sprint 03.2
+  eyebrowText: { type: 'text', label: 'Texto eyebrow (sobre el título, opcional)' },
+  cta2Text: { type: 'text', label: 'Texto del segundo botón CTA (opcional)' },
+  cta2Url: { type: 'text', label: 'URL del segundo botón CTA' },
+  cta2Variant: {
+    type: 'radio',
+    label: 'Estilo del segundo botón',
+    options: [
+      { label: 'Sólido', value: 'solid' },
+      { label: 'Contorno', value: 'outline' },
+      { label: 'Ghost', value: 'ghost' },
+    ],
+  },
+  overlayColor: { type: 'text', label: 'Color del overlay sobre imagen (hex)' },
+  overlayOpacity: { type: 'number', label: 'Opacidad del overlay (0–100, default 0)' },
 }
 
 export const heroBlockDefaultProps: HeroBlockProps = {
@@ -102,6 +124,13 @@ export const heroBlockDefaultProps: HeroBlockProps = {
   fontFamily: 'inherit',
   titleFontSize: 'lg',
   subtitleFontSize: 'lg',
+  // NUEVO Sprint 03.2 — defaults neutros para no romper heroes existentes
+  eyebrowText: '',
+  cta2Text: '',
+  cta2Url: '#',
+  cta2Variant: 'outline',
+  overlayColor: '#000000',
+  overlayOpacity: 0,
 }
 
 export function HeroBlock({
@@ -117,6 +146,13 @@ export function HeroBlock({
   fontFamily = 'inherit',
   titleFontSize = 'lg',
   subtitleFontSize = 'lg',
+  // NUEVO Sprint 03.2
+  eyebrowText = '',
+  cta2Text = '',
+  cta2Url = '#',
+  cta2Variant = 'outline',
+  overlayColor = '#000000',
+  overlayOpacity = 0,
 }: HeroBlockProps) {
   const padding = paddingMap[paddingY]
   const resolvedTitleSize = titleFontSizeMap[titleFontSize]
@@ -132,6 +168,18 @@ export function HeroBlock({
       }
     : {}
 
+  // Overlay hex-opacity suffix (0 = invisible = retro-compatible)
+  const overlayHex = overlayOpacity > 0
+    ? `${overlayColor}${Math.round((overlayOpacity / 100) * 255).toString(16).padStart(2, '0')}`
+    : null
+
+  const cta2Style: React.CSSProperties =
+    cta2Variant === 'solid'
+      ? { backgroundColor: textColor, color: backgroundColor, border: 'none' }
+      : cta2Variant === 'outline'
+        ? { backgroundColor: 'transparent', color: textColor, border: `2px solid ${textColor}` }
+        : { backgroundColor: 'transparent', color: textColor, border: 'none', textDecoration: 'underline' }
+
   return (
     <section
       style={{
@@ -143,7 +191,29 @@ export function HeroBlock({
         ...bgStyle,
       }}
     >
-      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+      {/* Overlay sobre imagen de fondo — no visible cuando overlayOpacity es 0 */}
+      {overlayHex && backgroundImage && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundColor: overlayHex,
+          pointerEvents: 'none',
+        }} />
+      )}
+      <div style={{ maxWidth: '800px', margin: '0 auto', position: 'relative' }}>
+        {eyebrowText && (
+          <p style={{
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            opacity: 0.75,
+            marginBottom: '12px',
+            fontFamily,
+          }}>
+            {eyebrowText}
+          </p>
+        )}
         <h1
           style={{
             fontSize: resolvedTitleSize,
@@ -165,24 +235,42 @@ export function HeroBlock({
         >
           {subtitle}
         </p>
-        {ctaText && (
-          <a
-            href={ctaUrl}
-            style={{
-              display: 'inline-block',
-              backgroundColor: textColor,
-              color: backgroundColor,
-              padding: '12px 32px',
-              borderRadius: '6px',
-              fontWeight: 600,
-              textDecoration: 'none',
-              fontSize: '1rem',
-              fontFamily,
-            }}
-          >
-            {ctaText}
-          </a>
-        )}
+        <div style={{ display: 'flex', gap: 12, justifyContent: textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start', flexWrap: 'wrap' }}>
+          {ctaText && (
+            <a
+              href={ctaUrl}
+              style={{
+                display: 'inline-block',
+                backgroundColor: textColor,
+                color: backgroundColor,
+                padding: '12px 32px',
+                borderRadius: '6px',
+                fontWeight: 600,
+                textDecoration: 'none',
+                fontSize: '1rem',
+                fontFamily,
+              }}
+            >
+              {ctaText}
+            </a>
+          )}
+          {cta2Text && (
+            <a
+              href={cta2Url}
+              style={{
+                display: 'inline-block',
+                padding: '12px 32px',
+                borderRadius: '6px',
+                fontWeight: 600,
+                fontSize: '1rem',
+                fontFamily,
+                ...cta2Style,
+              }}
+            >
+              {cta2Text}
+            </a>
+          )}
+        </div>
       </div>
     </section>
   )

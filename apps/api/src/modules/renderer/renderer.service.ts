@@ -33,7 +33,7 @@ export class RendererService {
    * Usado por el renderer para: metadatos de la página, nav links,
    * favicon, colores globales y settings SEO.
    */
-  async getTenantInfo(slug: string) {
+  async getTenantInfo(slug: string, isDraft = false) {
     const tenant = await this.db.tenant.findUnique({
       where: { slug },
       select: {
@@ -43,7 +43,7 @@ export class RendererService {
         logoUrl: true,
         isActive: true,
         sites: {
-          where: { isPublished: true },
+          where: isDraft ? {} : { isPublished: true },
           take: 1,
           select: {
             id: true,
@@ -52,7 +52,7 @@ export class RendererService {
             favicon: true,
             settings: true,
             pages: {
-              where: { status: 'PUBLISHED' },
+              where: isDraft ? {} : { status: 'PUBLISHED' },
               orderBy: { order: 'asc' },
               select: {
                 id: true,
@@ -111,42 +111,26 @@ export class RendererService {
    * El `content` es el JSON del page builder que el renderer
    * convierte en componentes React.
    */
-  async getPage(tenantSlug: string, pageSlug: string) {
-    // Primero obtenemos el siteId del tenant publicado
-    const tenant = await this.db.tenant.findUnique({
-      where: { slug: tenantSlug },
-      select: {
-        isActive: true,
-        sites: {
-          where: { isPublished: true },
-          take: 1,
-          select: { id: true },
-        },
-      },
-    })
-
-    if (!tenant?.isActive || !tenant.sites[0]) {
-      throw new NotFoundException({
-        code: 'SITE_NOT_PUBLISHED',
-        message: 'Sitio no encontrado o no publicado',
-      })
-    }
-
-    const siteId = tenant.sites[0].id
-
-    // Buscamos la página: slug exacto o homepage si slug es "index"
-    const whereSlug =
-      pageSlug === 'index'
-        ? { siteId, isHomepage: true, status: 'PUBLISHED' as const }
-        : { siteId, slug: pageSlug, status: 'PUBLISHED' as const }
-
+  async getPage(tenantSlug: string, pageSlug: string, isDraft = false) {
+    // Buscamos la página directamente por tenantSlug para cubrir el caso en que el
+    // tenant tiene múltiples sitios en dev (take:1 devolvería el sitio incorrecto).
+    // En producción un tenant tiene un solo sitio publicado, así que es equivalente.
+    const isHomepageSlug = pageSlug === 'index' || pageSlug === 'home' || pageSlug === ''
     const page = await this.db.page.findFirst({
-      where: whereSlug,
+      where: {
+        ...(isHomepageSlug ? { isHomepage: true } : { slug: pageSlug }),
+        site: {
+          ...(isDraft ? {} : { isPublished: true }),
+          tenant: { slug: tenantSlug, isActive: true },
+        },
+        ...(isDraft ? {} : { status: 'PUBLISHED' as const }),
+      },
       select: {
         id: true,
         title: true,
         slug: true,
         content: true,
+        rootProps: true,
         metaTitle: true,
         metaDesc: true,
         ogImage: true,
@@ -169,6 +153,7 @@ export class RendererService {
         title: page.title,
         slug: page.slug,
         content: page.content,
+        rootProps: page.rootProps,
         meta: {
           title: page.metaTitle ?? page.title,
           description: page.metaDesc,

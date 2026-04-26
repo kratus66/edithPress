@@ -13,13 +13,8 @@ import {
   UseGuards,
 } from '@nestjs/common'
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse } from '@nestjs/swagger'
-import { IsArray } from 'class-validator'
+import { IsArray, IsObject, IsOptional } from 'class-validator'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
-
-class SaveContentDto {
-  @IsArray()
-  blocks!: unknown[]
-}
 import { TenantGuard } from '../../common/guards/tenant.guard'
 import { RolesGuard } from '../../common/guards/roles.guard'
 import { CurrentUser } from '../../common/decorators/current-user.decorator'
@@ -29,6 +24,15 @@ import { PagesService } from './pages.service'
 import { CreatePageDto } from './dto/create-page.dto'
 import { UpdatePageDto } from './dto/update-page.dto'
 import type { JwtPayload } from '../auth/strategies/jwt.strategy'
+
+class SaveContentDto {
+  @IsArray()
+  blocks!: unknown[]
+
+  @IsOptional()
+  @IsObject()
+  rootProps?: Record<string, unknown>
+}
 
 @ApiTags('Pages')
 @ApiBearerAuth('access-token')
@@ -125,7 +129,7 @@ export class PagesController {
     @Param('pageId') pageId: string,
     @Body() dto: SaveContentDto,
   ) {
-    return { data: await this.pagesService.saveContent(pageId, siteId, user.tenantId, dto.blocks) }
+    return { data: await this.pagesService.saveContent(pageId, siteId, user.tenantId, dto.blocks, dto.rootProps) }
   }
 
   // ──────────── POST /sites/:siteId/pages/:pageId/publish ──

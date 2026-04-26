@@ -6,6 +6,8 @@ import {
   Param,
   HttpCode,
   HttpStatus,
+  Query,
+  Headers,
 } from '@nestjs/common'
 import { Throttle, SkipThrottle } from '@nestjs/throttler'
 import { ApiTags, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger'
@@ -41,8 +43,13 @@ export class RendererController {
   @ApiParam({ name: 'slug', description: 'Slug del tenant (subdominio)' })
   @ApiResponse({ status: 200, description: 'Info del sitio' })
   @ApiResponse({ status: 404, description: 'Sitio no encontrado o no publicado' })
-  async getTenantInfo(@Param('slug') slug: string) {
-    return { data: await this.rendererService.getTenantInfo(slug) }
+  async getTenantInfo(
+    @Param('slug') slug: string,
+    @Query('draft') draft?: string,
+    @Headers('x-renderer-secret') secret?: string,
+  ) {
+    const isDraft = draft === 'true' && !!secret && secret === process.env.RENDERER_SECRET
+    return { data: await this.rendererService.getTenantInfo(slug, isDraft) }
   }
 
   // ── GET /renderer/tenant/:slug/page/:pageSlug ───────────────────────────
@@ -64,8 +71,11 @@ export class RendererController {
   async getPage(
     @Param('slug') slug: string,
     @Param('pageSlug') pageSlug: string,
+    @Query('draft') draft?: string,
+    @Headers('x-renderer-secret') secret?: string,
   ) {
-    return { data: await this.rendererService.getPage(slug, pageSlug) }
+    const isDraft = draft === 'true' && !!secret && secret === process.env.RENDERER_SECRET
+    return { data: await this.rendererService.getPage(slug, pageSlug, isDraft) }
   }
 
   // ── POST /renderer/contact ──────────────────────────────────────────────

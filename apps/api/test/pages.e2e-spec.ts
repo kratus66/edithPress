@@ -66,6 +66,7 @@ describe('Pages API (integration)', () => {
   const mockDb = {
     site: {
       findFirst: jest.fn(),
+      update: jest.fn(),
     },
     page: {
       findMany: jest.fn(),
@@ -321,6 +322,7 @@ describe('Pages API (integration)', () => {
         content: [{ type: 'HeroBlock', props: { title: 'Hello' } }],
       })
       mockDb.page.update.mockResolvedValue(published)
+      mockDb.site.update.mockResolvedValue({ id: site.id, isPublished: true })
       const token = makeToken(TENANT_A)
 
       // Act

@@ -25,6 +25,7 @@ interface PageContent {
   ogImage?: string
   canonicalUrl?: string
   content: Block[]
+  rootProps?: Record<string, unknown>
   publishedAt: string
   updatedAt: string
 }
@@ -44,17 +45,18 @@ function getTenantSlug(): string | null {
 
 async function fetchSite(tenantSlug: string, isDraft: boolean): Promise<SiteInfo | null> {
   try {
-    const res = await fetch(
-      `${API_BASE}/api/v1/renderer/tenant/${tenantSlug}`,
-      {
-        ...(isDraft
-          ? { cache: 'no-store' as const }
-          : { next: { revalidate: 3600 } }),
-        headers: {
-          'x-renderer-secret': process.env.RENDERER_SECRET ?? '',
-        },
-      }
-    )
+    const url = isDraft
+      ? `${API_BASE}/api/v1/renderer/tenant/${tenantSlug}?draft=true`
+      : `${API_BASE}/api/v1/renderer/tenant/${tenantSlug}`
+
+    const res = await fetch(url, {
+      ...(isDraft
+        ? { cache: 'no-store' as const }
+        : { next: { revalidate: 3600 } }),
+      headers: {
+        'x-renderer-secret': process.env.RENDERER_SECRET ?? '',
+      },
+    })
 
     if (!res.ok) return null
 
@@ -107,6 +109,7 @@ async function fetchPage(
           title: string
           slug: string
           content: Block[]
+          rootProps?: Record<string, unknown>
           meta: { title?: string; description?: string; ogImage?: string }
           isHomepage: boolean
           publishedAt: string
@@ -124,6 +127,7 @@ async function fetchPage(
       metaDesc: page.meta?.description,
       ogImage: page.meta?.ogImage,
       content: Array.isArray(page.content) ? page.content : [],
+      rootProps: page.rootProps,
       publishedAt: page.publishedAt,
       updatedAt: page.updatedAt,
     }
@@ -335,7 +339,7 @@ export default async function TenantPage({
     <>
       <SiteNav site={site} currentSlug={pageSlug || 'home'} />
 
-      <BlockRenderer blocks={page.content} siteId={site.id} />
+      <BlockRenderer blocks={page.content} siteId={site.id} rootProps={page.rootProps} />
 
       <footer className="border-t border-gray-200 py-8 text-center text-sm text-gray-500">
         <p>

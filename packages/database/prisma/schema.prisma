@@ -132,6 +132,7 @@ model Page {
   title       String
   slug        String
   content     Json       @default("[]") // Array de bloques del page builder
+  rootProps   Json?                     // Props globales del root de Puck (fuentes, colores)
   metaTitle   String?
   metaDesc    String?
   ogImage     String?

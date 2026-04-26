@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing'
 import {
   ConflictException,
   ForbiddenException,
-  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
@@ -299,8 +298,8 @@ describe('AuthService — Security Tests', () => {
       await expect(service.login(user as never)).rejects.toThrow(ForbiddenException)
     })
 
-    it('should throw InternalServerErrorException when user has no tenant assigned', async () => {
-      // Arrange — usuario verificado pero sin tenants (estado inconsistente)
+    it('should return super-admin token when user has no tenant assigned', async () => {
+      // Arrange — usuario verificado sin tenants → tratado como super admin
       const user = {
         id: 'user-no-tenant',
         email: 'notenant@test.com',
@@ -308,8 +307,13 @@ describe('AuthService — Security Tests', () => {
         tenantUsers: [],
       }
 
-      // Act & Assert
-      await expect(service.login(user as never)).rejects.toThrow(InternalServerErrorException)
+      // Act
+      const result = await service.login(user as never)
+
+      // Assert — retorna tokens válidos con rol SUPER_ADMIN (no lanza excepción)
+      expect(result).toHaveProperty('accessToken')
+      expect(result).toHaveProperty('refreshToken')
+      expect(result).toHaveProperty('expiresIn')
     })
   })
 

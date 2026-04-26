@@ -6,8 +6,32 @@ import '@measured/puck/puck.css'
 import { puckConfig } from '@/lib/puck-config'
 import { BuilderToolbar } from '@/components/BuilderToolbar'
 import { PreviewDrawer } from '@/components/PreviewDrawer'
+import { CollapsibleSection } from '@/components/CollapsibleSection'
 import { useAutosave } from '@/hooks/useAutosave'
 import { builderApi } from '@/lib/api-client'
+
+// Puck override components — defined at module level so references are stable
+// (Puck uses overrides.outline / overrides.components as React component classes;
+//  a new reference every render would cause unmount+remount of those subtrees)
+const OutlineOverride = ({ children }: { children: React.ReactNode }) => (
+  <CollapsibleSection title="Outline">{children}</CollapsibleSection>
+)
+
+const ComponentsOverride = ({ children }: { children: React.ReactNode }) => (
+  <CollapsibleSection title="Componentes" noBorderTop>{children}</CollapsibleSection>
+)
+
+// CSS targeting Puck's left sidebar section titles (hashed classes from @measured/puck@0.16.2).
+// These hides Puck's native non-interactive headings and replaces them with CollapsibleSection.
+// If Puck is upgraded, verify the hashes haven't changed in its dist/index.css.
+const PUCK_LEFT_SIDEBAR_CSS = `
+  ._PuckLayout-leftSideBar_1g88c_143 ._SidebarSection-title_125qe_12 {
+    display: none !important;
+  }
+  ._PuckLayout-leftSideBar_1g88c_143 ._SidebarSection-content_125qe_24 {
+    padding: 0 !important;
+  }
+`
 
 const EMPTY_DATA: Data = {
   content: [],
@@ -43,6 +67,18 @@ function getTenantIdFromCookie(): string {
 }
 
 export function BuilderEditor({ siteId, pageId }: BuilderEditorProps) {
+  // Bootstrap auth: if admin passes ?token=<jwt> in the URL, persist it for api-client
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const token = params.get('token')
+    if (token) {
+      localStorage.setItem('edithpress_access_token', token)
+      const url = new URL(window.location.href)
+      url.searchParams.delete('token')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [])
+
   const [data, setData] = useState<Data>(EMPTY_DATA)
   const [isLoaded, setIsLoaded] = useState(false)
   const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
@@ -59,9 +95,10 @@ export function BuilderEditor({ siteId, pageId }: BuilderEditorProps) {
   const { status: saveStatus, lastSaved, saveNow, onChange: autosaveOnChange } = useAutosave({
     pageId,
     onSave: async (dataToSave: Data | null) => {
-      // Usa dataToSave si existe, de lo contrario el ref (para guardar sin cambios previos)
-      const blocks = (dataToSave ?? currentDataRef.current).content
-      await builderApi.put(`/sites/${siteId}/pages/${pageId}/content`, { blocks })
+      const activeData = dataToSave ?? currentDataRef.current
+      const blocks = activeData.content
+      const rootProps = activeData.root?.props ?? {}
+      await builderApi.put(`/sites/${siteId}/pages/${pageId}/content`, { blocks, rootProps })
     },
   })
 
@@ -72,7 +109,7 @@ export function BuilderEditor({ siteId, pageId }: BuilderEditorProps) {
         const tenantId = getTenantIdFromCookie()
 
         const [pageJson, siteJson] = await Promise.all([
-          builderApi.get<{ data: { title: string; slug: string; status: 'DRAFT' | 'PUBLISHED'; content: Data['content'] } }>(
+          builderApi.get<{ data: { title: string; slug: string; status: 'DRAFT' | 'PUBLISHED'; content: Data['content']; rootProps?: Record<string, unknown> } }>(
             `/sites/${siteId}/pages/${pageId}`
           ),
           builderApi.get<{ data: { tenantId: string; tenant?: { slug: string } } }>(`/sites/${siteId}`).catch(() => null),
@@ -82,7 +119,8 @@ export function BuilderEditor({ siteId, pageId }: BuilderEditorProps) {
         if (pageJson.data.slug) setPageSlug(pageJson.data.slug)
         if (pageJson.data.status) setPageStatus(pageJson.data.status)
         if (Array.isArray(pageJson.data.content) && pageJson.data.content.length > 0) {
-          const loaded: Data = { content: pageJson.data.content, root: { props: {} } }
+          const rootPropsFromApi = pageJson.data.rootProps ?? {}
+          const loaded: Data = { content: pageJson.data.content, root: { props: rootPropsFromApi } }
           setData(loaded)
           currentDataRef.current = loaded
         }
@@ -205,11 +243,16 @@ export function BuilderEditor({ siteId, pageId }: BuilderEditorProps) {
 
   return (
     <div style={{ position: 'relative' }}>
+      <style>{PUCK_LEFT_SIDEBAR_CSS}</style>
       <Puck
         config={puckConfig}
         data={data}
         onChange={handleChange}
-        overrides={{ header: headerOverride }}
+        overrides={{
+          header: headerOverride,
+          outline: OutlineOverride,
+          components: ComponentsOverride,
+        }}
       />
 
       <PreviewDrawer

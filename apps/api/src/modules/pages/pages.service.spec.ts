@@ -25,6 +25,7 @@ describe('PagesService', () => {
   const mockDb: Record<string, any> = {
     site: {
       findFirst: jest.fn(),
+      update: jest.fn(),
     },
     page: {
       findMany: jest.fn(),
@@ -293,6 +294,7 @@ describe('PagesService', () => {
       const page = createPage({ siteId: 'site-1', content: [{ type: 'hero' }] })
       mockDb.page.findFirst.mockResolvedValue(page)
       mockDb.page.update.mockResolvedValue({ ...page, status: 'PUBLISHED' })
+      mockDb.site.update.mockResolvedValue({ id: 'site-1', isPublished: true })
 
       // Act
       const result = await service.publish(page.id, 'site-1', 'tenant-1')

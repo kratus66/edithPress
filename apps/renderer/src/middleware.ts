@@ -41,7 +41,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // ── Prioridad 2: subdominio de edithpress.com o localhost (dev/staging) ───────
+  // ── Prioridad 2: preview con ?__t=tenantSlug (draft mode activo) ─────────────
+  // Cuando el builder activa draft mode, redirige a localhost:3003/slug?__t=tenantSlug
+  // para evitar problemas de dominio de cookie entre demo.localhost y localhost.
+  // Solo se acepta si la cookie __prerender_bypass está presente (garantía criptográfica).
+  const draftCookie = request.cookies.get('__prerender_bypass')
+  const tenantFromParam = request.nextUrl.searchParams.get('__t')
+  if (draftCookie && tenantFromParam) {
+    const newHeaders = new Headers(request.headers)
+    newHeaders.set('x-tenant-slug', tenantFromParam)
+    return NextResponse.next({ request: { headers: newHeaders } })
+  }
+
+  // ── Prioridad 3: subdominio de edithpress.com o localhost (dev/staging) ───────
   const hostname = host.split(':')[0] // quitar puerto
 
   const isEdithPressDomain =

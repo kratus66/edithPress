@@ -8,7 +8,6 @@ import {
   useCallback,
   type ReactNode,
 } from 'react'
-import { useRouter } from 'next/navigation'
 
 interface AuthUser {
   id: string
@@ -54,7 +53,6 @@ function getTokenFromCookie(): string | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const router = useRouter()
   const [user, setUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -73,8 +71,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     await fetch('/api/auth/session', { method: 'DELETE' })
     setUser(null)
-    router.push('/login')
-  }, [router])
+    window.location.href = '/login'
+  }, [])
 
   return (
     <AuthContext.Provider value={{ user, isLoading, logout, setUserFromToken }}>

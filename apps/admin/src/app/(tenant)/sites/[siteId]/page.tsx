@@ -12,6 +12,15 @@ interface Page {
   isHomepage: boolean; order: number; updatedAt: string
 }
 
+const BUILDER_BASE = process.env.NEXT_PUBLIC_BUILDER_URL ?? 'http://localhost:3002'
+
+function builderHref(siteId: string, pageId: string): string {
+  const base = `${BUILDER_BASE}/builder/${siteId}/${pageId}`
+  if (typeof document === 'undefined') return base
+  const token = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/)?.[1]
+  return token ? `${base}?token=${token}` : base
+}
+
 function PageRow({ id, siteId, title, slug, status, isHomepage }: Page & { siteId: string }) {
   return (
     <div className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
@@ -28,7 +37,7 @@ function PageRow({ id, siteId, title, slug, status, isHomepage }: Page & { siteI
         <Badge variant={status === 'PUBLISHED' ? 'success' : status === 'ARCHIVED' ? 'warning' : 'default'}>
           {status === 'PUBLISHED' ? 'Publicado' : status === 'ARCHIVED' ? 'Archivado' : 'Borrador'}
         </Badge>
-        <a href={`${process.env.NEXT_PUBLIC_BUILDER_URL ?? 'http://localhost:3002'}/builder/${siteId}/${id}`}>
+        <a href={builderHref(siteId, id)}>
           <Button variant="ghost" size="sm">Editar</Button>
         </a>
       </div>

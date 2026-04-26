@@ -115,10 +115,11 @@ export class PagesService {
   async findOne(pageId: string, siteId: string, tenantId: string) {
     await this.verifySiteOwnership(siteId, tenantId)
 
+    const select = { ...PAGE_SELECT, content: true, rootProps: true } as Record<string, true>
     const page = await this.db.page.findFirst({
       where: { id: pageId, siteId },
-      select: { ...PAGE_SELECT, content: true },
-    })
+      select,
+    }) as (typeof PAGE_SELECT & { content: unknown; rootProps: unknown }) | null
     if (!page) throw new NotFoundException('Página no encontrada')
     return page
   }
@@ -187,7 +188,13 @@ export class PagesService {
 
   // ──────────────────────────────────────── SAVE CONTENT ──
 
-  async saveContent(pageId: string, siteId: string, tenantId: string, blocks: unknown[]) {
+  async saveContent(
+    pageId: string,
+    siteId: string,
+    tenantId: string,
+    blocks: unknown[],
+    rootProps?: Record<string, unknown>,
+  ) {
     await this.verifySiteOwnership(siteId, tenantId)
 
     const page = await this.db.page.findFirst({
@@ -198,7 +205,10 @@ export class PagesService {
 
     const updated = await this.db.page.update({
       where: { id: pageId },
-      data: { content: blocks as object[] },
+      data: {
+        content: blocks as object[],
+        ...(rootProps !== undefined && { rootProps: rootProps as object }),
+      },
       select: { id: true, updatedAt: true },
     })
 

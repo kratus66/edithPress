@@ -2,6 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+
+const BUILDER_BASE = process.env.NEXT_PUBLIC_BUILDER_URL ?? 'http://localhost:3002'
+function builderHref(siteId: string, pageId: string): string {
+  const base = `${BUILDER_BASE}/builder/${siteId}/${pageId}`
+  if (typeof document === 'undefined') return base
+  const token = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/)?.[1]
+  return token ? `${base}?token=${token}` : base
+}
 import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -60,9 +68,7 @@ export default function NewPagePage({ params }: { params: { siteId: string } }) 
         `/sites/${siteId}/pages`,
         values,
       )
-      router.push(
-        `${process.env.NEXT_PUBLIC_BUILDER_URL ?? 'http://localhost:3002'}/builder/${siteId}/${data.data.id}`,
-      )
+      router.push(builderHref(siteId, data.data.id))
     } catch (err) {
       setApiError(getApiErrorMessage(err, 'No se pudo crear la página.'))
     }

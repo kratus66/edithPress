@@ -83,13 +83,25 @@ export async function GET(request: NextRequest) {
   // del subdominio cuando la cookie de Draft Mode ya está activa.
   const rendererPublicUrl = process.env.RENDERER_PUBLIC_URL ?? 'http://localhost:3003'
   const parsedRenderer   = new URL(rendererPublicUrl)
+  const pagePath         = pageSlug === 'home' ? '/' : `/${pageSlug}`
 
-  // Inyectar el tenantSlug como subdominio del host base del renderer.
-  // Ejemplo: localhost:3003 → miempresa.localhost:3003
-  const tenantHost = `${tenantSlug}.${parsedRenderer.host}`
-  const pagePath   = pageSlug === 'home' ? '/' : `/${pageSlug}`
+  // En local dev (localhost) usamos ?__t=tenantSlug en el mismo host para evitar
+  // el problema de cookies entre demo.localhost y localhost (las cookies de draft
+  // mode son host-only y no se comparten con subdominios en desarrollo).
+  // El middleware lee ?__t cuando __prerender_bypass cookie está activa.
+  //
+  // En producción (subdominio real como demo.edithpress.com) la cookie se establece
+  // en el mismo dominio que la redirección, así que usamos el subdominio directamente.
+  const isLocalhost = parsedRenderer.hostname === 'localhost' || parsedRenderer.hostname === '127.0.0.1'
 
-  const redirectUrl = new URL(pagePath, `${parsedRenderer.protocol}//${tenantHost}`)
+  let redirectUrl: URL
+  if (isLocalhost) {
+    redirectUrl = new URL(pagePath, `${parsedRenderer.protocol}//${parsedRenderer.host}`)
+    redirectUrl.searchParams.set('__t', tenantSlug)
+  } else {
+    const tenantHost = `${tenantSlug}.${parsedRenderer.host}`
+    redirectUrl = new URL(pagePath, `${parsedRenderer.protocol}//${tenantHost}`)
+  }
 
   return NextResponse.redirect(redirectUrl.toString())
 }

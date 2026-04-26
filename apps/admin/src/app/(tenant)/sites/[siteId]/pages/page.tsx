@@ -5,6 +5,14 @@ import Link from 'next/link'
 import { Button, Badge, Card, Alert } from '@edithpress/ui'
 import { api, getApiErrorMessage } from '@/lib/api-client'
 
+const BUILDER_BASE = process.env.NEXT_PUBLIC_BUILDER_URL ?? 'http://localhost:3002'
+function builderHref(siteId: string, pageId: string): string {
+  const base = `${BUILDER_BASE}/builder/${siteId}/${pageId}`
+  if (typeof document === 'undefined') return base
+  const token = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/)?.[1]
+  return token ? `${base}?token=${token}` : base
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface SitePage {
@@ -87,7 +95,7 @@ function PageRow({
             {STATUS_LABELS[page.status]}
           </Badge>
 
-          <a href={`${process.env.NEXT_PUBLIC_BUILDER_URL ?? 'http://localhost:3002'}/builder/${siteId}/${page.id}`}>
+          <a href={builderHref(siteId, page.id)}>
             <Button variant="outline" size="sm">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mr-1">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />

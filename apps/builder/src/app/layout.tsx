@@ -7,6 +7,7 @@ const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
   display: 'swap',
+  weight: ['100', '300', '400', '500', '600', '700'],
 })
 
 export const metadata: Metadata = {
@@ -28,7 +29,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className={inter.variable}>
-      <body className="bg-white font-sans antialiased">
+      <body className="bg-white antialiased" style={{ fontFamily: 'var(--font-inter, ui-sans-serif, system-ui, sans-serif)' }}>
         <Providers>{children}</Providers>
       </body>
     </html>

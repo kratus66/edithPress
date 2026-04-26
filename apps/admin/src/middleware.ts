@@ -1,9 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
 
-/**
- * Routes that require authentication. Any path that STARTS WITH one of these
- * strings will be protected.
- */
 const PROTECTED_PREFIXES = [
   '/dashboard',
   '/sites',
@@ -17,10 +13,31 @@ const PROTECTED_PREFIXES = [
   '/super-admin',
 ]
 
-/**
- * Auth pages — redirect to dashboard when the user is already logged in.
- */
 const AUTH_PREFIXES = ['/login', '/register', '/forgot-password', '/reset-password']
+
+const TENANT_PREFIXES = [
+  '/dashboard',
+  '/sites',
+  '/billing',
+  '/media',
+  '/settings',
+  '/templates',
+  '/analytics',
+  '/domains',
+  '/onboarding',
+]
+
+function decodeJwtPayload(token: string): { isSuperAdmin?: boolean; tenantId?: string } | null {
+  try {
+    const base64 = token.split('.')[1]
+    return JSON.parse(atob(base64.replace(/-/g, '+').replace(/_/g, '/'))) as {
+      isSuperAdmin?: boolean
+      tenantId?: string
+    }
+  } catch {
+    return null
+  }
+}
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -28,23 +45,38 @@ export function middleware(request: NextRequest) {
 
   const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p))
   const isAuthPage = AUTH_PREFIXES.some((p) => pathname.startsWith(p))
+  const isTenantRoute = TENANT_PREFIXES.some((p) => pathname.startsWith(p))
+  const isSuperAdminRoute = pathname.startsWith('/super-admin')
 
-  // Unauthenticated user trying to access a protected route → redirect to login
   if (isProtected && !token) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('next', pathname)
     return NextResponse.redirect(loginUrl)
   }
 
-  // Authenticated user trying to access an auth page → redirect to dashboard
-  if (isAuthPage && token) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  if (token) {
+    const payload = decodeJwtPayload(token)
+
+    // Super admin accessing tenant routes → redirect to super-admin dashboard
+    if (payload?.isSuperAdmin && isTenantRoute) {
+      return NextResponse.redirect(new URL('/super-admin/dashboard', request.url))
+    }
+
+    // Regular tenant user accessing super-admin routes → redirect to tenant dashboard
+    if (!payload?.isSuperAdmin && isSuperAdminRoute) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+
+    // Authenticated user on auth page → redirect to appropriate dashboard
+    if (isAuthPage) {
+      const dest = payload?.isSuperAdmin ? '/super-admin/dashboard' : '/dashboard'
+      return NextResponse.redirect(new URL(dest, request.url))
+    }
   }
 
   return NextResponse.next()
 }
 
 export const config = {
-  // Skip Next.js internals, static files, and Next.js API routes
   matcher: ['/((?!_next/static|_next/image|favicon.ico|api/).*)'],
 }

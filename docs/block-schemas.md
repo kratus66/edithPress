@@ -1,10 +1,72 @@
 # EdithPress — Block Schemas
-**Versión**: v1.0 — Sprint 03.1  
-**Fecha**: 2026-04-24
+**Versión**: v1.1 — Sprint 03.2  
+**Fecha**: 2026-04-25
 
 > Este documento es el contrato inmutable entre el builder y el renderer.  
 > Los nombres de props NO deben cambiar en producción. Si cambian, requieren migración de datos.  
 > Convención: camelCase para props, PascalCase para tipos de unión.
+
+---
+
+---
+
+## HeroBlock
+**Versión actual**: v1.1 (Sprint 03.2) — retro-compatible con v1.0
+
+```typescript
+interface HeroBlockProps {
+  // Props v1.0 — NO cambiar nombres
+  title: string
+  subtitle: string
+  backgroundColor: string
+  backgroundImage: string
+  textColor: string
+  ctaText: string
+  ctaUrl: string
+  textAlign: 'left' | 'center' | 'right'
+  paddingY: 'sm' | 'md' | 'lg' | 'xl'
+  fontFamily: string
+  titleFontSize: 'sm' | 'md' | 'lg' | 'xl' | 'xxl'
+  subtitleFontSize: 'sm' | 'md' | 'lg' | 'xl'
+  // NUEVO Sprint 03.2 — props opcionales
+  eyebrowText?: string               // Texto sobre el título en uppercase (default: '')
+  cta2Text?: string                  // Texto del segundo botón CTA (default: '')
+  cta2Url?: string                   // URL del segundo botón CTA (default: '#')
+  cta2Variant?: 'solid' | 'outline' | 'ghost'  // Estilo del segundo CTA (default: 'outline')
+  overlayColor?: string              // Color del overlay sobre imagen (default: '#000000')
+  overlayOpacity?: number            // Opacidad del overlay 0–100 (default: 0 — CRÍTICO: 0 para no romper heroes existentes)
+}
+```
+
+**DefaultProps:**
+```typescript
+{
+  title: 'Bienvenido a mi negocio',
+  subtitle: 'Ofrecemos los mejores servicios de la región',
+  backgroundColor: '#1a1a2e',
+  backgroundImage: '',
+  textColor: '#ffffff',
+  ctaText: 'Contáctanos',
+  ctaUrl: '/contacto',
+  textAlign: 'center',
+  paddingY: 'lg',
+  fontFamily: 'inherit',
+  titleFontSize: 'lg',
+  subtitleFontSize: 'lg',
+  // NUEVO Sprint 03.2
+  eyebrowText: '',
+  cta2Text: '',
+  cta2Url: '#',
+  cta2Variant: 'outline',
+  overlayColor: '#000000',
+  overlayOpacity: 0,
+}
+```
+
+**Notas:**
+- `overlayOpacity: 0` es el default por diseño: heroes existentes sin `backgroundImage` no se ven afectados.
+- El overlay solo se renderiza cuando `backgroundImage` está presente y `overlayOpacity > 0`.
+- v1.1 es retro-compatible: todos los nuevos props son opcionales con defaults neutros.
 
 ---
 
@@ -58,6 +120,7 @@ interface NavbarBlockProps {
 ---
 
 ## ProductGridBlock
+**Versión actual**: v1.1 (Sprint 03.2) — retro-compatible con v1.0
 
 ```typescript
 interface ProductGridBlockProps {
@@ -81,6 +144,12 @@ interface ProductGridBlockProps {
   showCategory: boolean       // Mostrar/ocultar badge de categoría
   showArtisan: boolean        // Mostrar/ocultar nombre del artesano
   cardStyle: 'shadow' | 'border' | 'minimal'
+  // NUEVO Sprint 03.2 — props opcionales
+  eyebrowText?: string              // Texto sobre el título en uppercase (default: '')
+  viewAllText?: string              // Texto del enlace "Ver todos" (default: '')
+  viewAllUrl?: string               // URL del enlace "Ver todos" (default: '#')
+  categoryPosition?: 'badge' | 'above-name'  // Posición de la categoría (default: 'badge')
+  showCta?: boolean                 // Mostrar/ocultar botón CTA por producto (default: true)
 }
 ```
 
@@ -110,6 +179,12 @@ interface ProductGridBlockProps {
   showCategory: true,
   showArtisan: false,
   cardStyle: 'shadow',
+  // NUEVO Sprint 03.2
+  eyebrowText: '',
+  viewAllText: '',
+  viewAllUrl: '#',
+  categoryPosition: 'badge',
+  showCta: true,
 }
 ```
 
@@ -117,6 +192,7 @@ interface ProductGridBlockProps {
 - `price` es string para soportar formatos de cualquier moneda y locale.
 - En el renderer se usa `next/image` para las imágenes (mejor rendimiento).
 - Responsive: 1 col en mobile, 2 en tablet, `columns` en desktop (via CSS Grid + media queries).
+- v1.1 es retro-compatible: todos los nuevos props son opcionales con defaults que preservan comportamiento v1.0.
 
 ---
 
@@ -201,13 +277,207 @@ interface NewsletterBlockProps {
 
 ---
 
+## CategoryGridBlock
+**Versión**: v1.0 — Sprint 03.2
+
+```typescript
+interface CategoryGridBlockProps {
+  eyebrowText: string          // "NUESTRAS CATEGORÍAS"
+  title: string                // "Explora por tipo de artesanía"
+  columns: 2 | 3 | 4
+  categories: Array<{
+    image: string              // URL de la imagen (full-bleed con overlay)
+    imageAlt: string
+    name: string
+    description: string
+    url: string
+  }>
+  cardAspectRatio: 'square' | 'portrait' | 'landscape'
+  overlayColor: string         // Color base del gradiente (default: "#000000")
+  overlayOpacity: number       // 0–100 (default: 60)
+  backgroundColor: string      // Fondo de la sección (default: "#f5f0e8")
+  textColor: string            // (default: "#1a0f00")
+  accentColor: string          // Color del eyebrow y título (default: "#7c3f00")
+}
+```
+
+**DefaultProps:**
+```typescript
+{
+  eyebrowText: 'NUESTRAS CATEGORÍAS',
+  title: 'Explora por tipo de artesanía',
+  columns: 4,
+  categories: [
+    { image: 'https://placehold.co/400x500/8B6914/ffffff?text=Mochilas', imageAlt: 'Mochilas artesanales', name: 'Mochilas', description: 'Tejidas a mano con hilos naturales', url: '#' },
+    { image: 'https://placehold.co/400x500/8B6914/ffffff?text=Cerámica', imageAlt: 'Cerámica artesanal', name: 'Cerámica', description: 'Técnicas ancestrales del Vichada', url: '#' },
+    { image: 'https://placehold.co/400x500/8B6914/ffffff?text=Joyería', imageAlt: 'Joyería artesanal', name: 'Joyería', description: 'Semillas y materiales naturales', url: '#' },
+    { image: 'https://placehold.co/400x500/8B6914/ffffff?text=Textiles', imageAlt: 'Textiles artesanales', name: 'Textiles', description: 'Bordados y tejidos únicos', url: '#' },
+  ],
+  cardAspectRatio: 'portrait',
+  overlayColor: '#000000',
+  overlayOpacity: 60,
+  backgroundColor: '#f5f0e8',
+  textColor: '#1a0f00',
+  accentColor: '#7c3f00',
+}
+```
+
+**Notas:**
+- El overlay se implementa como `linear-gradient(to top, overlayColor+opacity 0%, transparent 60%)` para legibilidad del texto.
+- El texto (nombre + descripción) siempre es blanco (`#ffffff`) porque se renderiza sobre el overlay oscuro.
+- `cardAspectRatio: 'portrait'` (4/5) es el default por ser el más adecuado para imágenes de categoría editorial.
+
+---
+
+## SplitContentBlock
+**Versión**: v1.0 — Sprint 03.2
+
+```typescript
+interface SplitContentBlockProps {
+  eyebrowText: string
+  title: string
+  body: string                 // Soporta \n para separar en párrafos
+  imagePosition: 'left' | 'right'
+  imageLayout: 'single' | 'collage'
+  images: Array<{ src: string; alt: string }>
+  stats: Array<{ value: string; label: string }>
+  ctaText: string
+  ctaUrl: string
+  ctaVariant: 'solid' | 'outline' | 'ghost' | 'none'
+  backgroundColor: string
+  textColor: string
+  accentColor: string
+  gap: 'sm' | 'md' | 'lg'     // Espacio entre columna imagen y columna texto
+}
+```
+
+**DefaultProps:**
+```typescript
+{
+  eyebrowText: 'NUESTRA HISTORIA',
+  title: 'Preservando la tradición, impulsando comunidades',
+  body: 'Trabajamos de la mano con comunidades indígenas y artesanos locales.\nCada pieza que encuentras aquí es única, elaborada con técnicas ancestrales.',
+  imagePosition: 'left',
+  imageLayout: 'collage',
+  images: [
+    { src: 'https://placehold.co/400x400/8B6914/ffffff?text=Artesanos+1', alt: 'Artesanos trabajando' },
+    { src: 'https://placehold.co/400x400/7c3f00/ffffff?text=Artesanos+2', alt: 'Artesanía tradicional' },
+    { src: 'https://placehold.co/400x400/a0522d/ffffff?text=Artesanos+3', alt: 'Comunidad artesanal' },
+  ],
+  stats: [
+    { value: '50+', label: 'Artesanos' },
+    { value: '500+', label: 'Piezas únicas' },
+    { value: '12', label: 'Comunidades' },
+    { value: '100%', label: 'Hecho a mano' },
+  ],
+  ctaText: 'Conoce más sobre nosotros',
+  ctaUrl: '#',
+  ctaVariant: 'solid',
+  backgroundColor: '#f5f0e8',
+  textColor: '#1a0f00',
+  accentColor: '#7c3f00',
+  gap: 'md',
+}
+```
+
+**Notas:**
+- `imageLayout: 'collage'`: la primera imagen ocupa el ancho completo (16/9), las siguientes 2 forman una fila cuadrada (1/1).
+- `imageLayout: 'single'`: solo se usa la primera imagen de `images[]`.
+- `body` se divide en párrafos por `\n` — el renderer hace `split('\n').filter(Boolean)`.
+- `gap` map: `sm` = 32px, `md` = 64px, `lg` = 96px.
+- `ctaVariant: 'none'` no renderiza el botón.
+
+---
+
+## FooterBlock
+**Versión**: v1.0 — Sprint 03.2
+
+```typescript
+type SocialPlatform = 'instagram' | 'facebook' | 'twitter' | 'youtube' | 'tiktok' | 'linkedin'
+
+interface FooterBlockProps {
+  logoText: string
+  logoSubtext: string
+  logoImageUrl: string         // URL de imagen de logo (vacío = usar logoText)
+  tagline: string
+  contactEmail: string
+  contactPhone: string
+  contactAddress: string
+  socialLinks: Array<{ platform: SocialPlatform; url: string }>
+  columns: Array<{
+    heading: string
+    links: Array<{ label: string; url: string }>
+  }>
+  copyright: string
+  legalLinks: Array<{ label: string; url: string }>
+  backgroundColor: string      // (default: "#1a0f00")
+  textColor: string            // (default: "#f5f0e8")
+  accentColor: string          // (default: "#c4622d")
+  showNewsletter: boolean
+  newsletterTitle: string
+  newsletterSubtitle: string
+  newsletterPlaceholder: string
+  newsletterButtonText: string
+  newsletterBackgroundColor: string  // (default: "#2d1a0a")
+}
+```
+
+**DefaultProps:**
+```typescript
+{
+  logoText: 'Mi Negocio',
+  logoSubtext: '',
+  logoImageUrl: '',
+  tagline: 'Conectando productos únicos con el mundo.',
+  contactEmail: 'contacto@minegocio.com',
+  contactPhone: '',
+  contactAddress: '',
+  socialLinks: [
+    { platform: 'instagram', url: '#' },
+    { platform: 'facebook', url: '#' },
+  ],
+  columns: [
+    { heading: 'TIENDA', links: [{ label: 'Todos los productos', url: '#' }, { label: 'Novedades', url: '#' }, { label: 'Ofertas', url: '#' }] },
+    { heading: 'EMPRESA', links: [{ label: 'Sobre nosotros', url: '#' }, { label: 'Artesanos', url: '#' }, { label: 'Blog', url: '#' }] },
+    { heading: 'AYUDA', links: [{ label: 'Preguntas frecuentes', url: '#' }, { label: 'Envíos y devoluciones', url: '#' }, { label: 'Contacto', url: '#' }] },
+  ],
+  copyright: '© 2024 Mi Negocio. Todos los derechos reservados.',
+  legalLinks: [
+    { label: 'Política de privacidad', url: '#' },
+    { label: 'Términos y condiciones', url: '#' },
+  ],
+  backgroundColor: '#1a0f00',
+  textColor: '#f5f0e8',
+  accentColor: '#c4622d',
+  showNewsletter: true,
+  newsletterTitle: 'Únete a nuestra comunidad',
+  newsletterSubtitle: 'Recibe noticias, historias de artesanos y ofertas exclusivas.',
+  newsletterPlaceholder: 'Tu correo electrónico',
+  newsletterButtonText: 'Suscribirse',
+  newsletterBackgroundColor: '#2d1a0a',
+}
+```
+
+**Notas:**
+- En el **builder**: el formulario de newsletter está deshabilitado (`disabled`) — puramente visual.
+- En el **renderer**: `'use client'` con lógica de submit idéntica a NewsletterBlock.
+- Los íconos de redes sociales usan abreviaciones de texto (IG, FB, TW…) para no depender de librerías externas.
+- El grid principal es `minmax(200px, 1fr) repeat(N, 1fr)` donde N = `columns.length`.
+- `showNewsletter: false` oculta completamente la banda de newsletter (incluido su fondo).
+
+---
+
 ## Compatibilidad y Migración
 
-| Bloque | Introducido en | Props que NO cambian |
-|--------|----------------|----------------------|
-| NavbarBlock | Sprint 03.1 | logoText, logoImageUrl, navLinks, backgroundColor, textColor, accentColor, sticky, showSearch, showCart, layout |
-| ProductGridBlock | Sprint 03.1 | title, subtitle, columns, products, backgroundColor, textColor, accentColor, showCategory, showArtisan, cardStyle |
-| StatsBlock | Sprint 03.1 | stats, backgroundColor, textColor, accentColor, layout, padding |
-| NewsletterBlock | Sprint 03.1 | title, subtitle, placeholder, buttonText, successMessage, backgroundColor, textColor, accentColor, layout |
+| Bloque | Introducido en | Versión actual | Props que NO cambian |
+|--------|----------------|----------------|----------------------|
+| HeroBlock | FASE 0 | v1.1 (Sprint 03.2) | title, subtitle, backgroundColor, backgroundImage, textColor, ctaText, ctaUrl, textAlign, paddingY, fontFamily, titleFontSize, subtitleFontSize |
+| NavbarBlock | Sprint 03.1 | v1.0 | logoText, logoImageUrl, navLinks, backgroundColor, textColor, accentColor, sticky, showSearch, showCart, layout |
+| ProductGridBlock | Sprint 03.1 | v1.1 (Sprint 03.2) | title, subtitle, columns, products, backgroundColor, textColor, accentColor, showCategory, showArtisan, cardStyle |
+| StatsBlock | Sprint 03.1 | v1.0 | stats, backgroundColor, textColor, accentColor, layout, padding |
+| NewsletterBlock | Sprint 03.1 | v1.0 | title, subtitle, placeholder, buttonText, successMessage, backgroundColor, textColor, accentColor, layout |
+| CategoryGridBlock | Sprint 03.2 | v1.0 | eyebrowText, title, columns, categories, cardAspectRatio, overlayColor, overlayOpacity, backgroundColor, textColor, accentColor |
+| SplitContentBlock | Sprint 03.2 | v1.0 | eyebrowText, title, body, imagePosition, imageLayout, images, stats, ctaText, ctaUrl, ctaVariant, backgroundColor, textColor, accentColor, gap |
+| FooterBlock | Sprint 03.2 | v1.0 | logoText, logoSubtext, logoImageUrl, tagline, contactEmail, contactPhone, contactAddress, socialLinks, columns, copyright, legalLinks, backgroundColor, textColor, accentColor, showNewsletter, newsletterTitle, newsletterSubtitle, newsletterPlaceholder, newsletterButtonText, newsletterBackgroundColor |
 
 > **IMPORTANTE**: Cambios a nombres de props de bloques ya en producción requieren una migración de datos en la tabla `Page.content` (JSON). Coordinar con el Database Engineer antes de cualquier cambio.

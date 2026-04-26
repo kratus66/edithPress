@@ -16,6 +16,9 @@ import { PricingBlock, pricingBlockFields, pricingBlockDefaultProps } from '@/bl
 import { ProductGridBlock, productGridBlockFields, productGridBlockDefaultProps } from '@/blocks/ProductGridBlock'
 import { StatsBlock, statsBlockFields, statsBlockDefaultProps } from '@/blocks/StatsBlock'
 import { NewsletterBlock, newsletterBlockFields, newsletterBlockDefaultProps } from '@/blocks/NewsletterBlock'
+import { CategoryGridBlock, categoryGridBlockFields, categoryGridBlockDefaultProps } from '@/blocks/CategoryGridBlock'
+import { SplitContentBlock, splitContentBlockFields, splitContentBlockDefaultProps } from '@/blocks/SplitContentBlock'
+import { FooterBlock, footerBlockFields, footerBlockDefaultProps } from '@/blocks/FooterBlock'
 import { MediaPicker } from '@/components/MediaPicker'
 import { ColorPickerField } from '@/components/ColorPickerField'
 import { FontFamilyField } from '@/components/FontFamilyField'
@@ -49,8 +52,49 @@ const fontFamilyField = (label: string) => ({
  * FASE 1: GalleryBlock, ContactFormBlock, CardGridBlock
  * FASE 2: VideoBlock, PricingBlock — MediaPicker integrado en campos de imagen
  * FASE 3.1: NavbarBlock, ProductGridBlock, StatsBlock, NewsletterBlock
+ * FASE 3.2: CategoryGridBlock, SplitContentBlock, FooterBlock
+ *           HeroBlock v1.1 (+eyebrowText, cta2, overlayOpacity)
+ *           ProductGridBlock v1.1 (+eyebrowText, viewAllText, categoryPosition, showCta)
+ * FASE 3.3: root config (estilos globales), NavbarBlock logo multi-línea
  */
 export const puckConfig: Config = {
+  root: {
+    render: ({ children, fontHeading, fontBody, colorPrimary, colorText, colorBackground }: {
+      children: React.ReactNode
+      fontHeading?: string
+      fontBody?: string
+      colorPrimary?: string
+      colorText?: string
+      colorBackground?: string
+    }) => (
+      <>
+        <style>{`
+          :root {
+            ${fontHeading ? `--ep-font-heading: ${fontHeading};` : ''}
+            ${fontBody ? `--ep-font-body: ${fontBody};` : ''}
+            --ep-color-primary: ${colorPrimary ?? '#b45309'};
+            --ep-color-text: ${colorText ?? '#1e293b'};
+            --ep-color-bg: ${colorBackground ?? '#ffffff'};
+          }
+        `}</style>
+        <div>{children}</div>
+      </>
+    ),
+    fields: {
+      fontHeading: fontFamilyField('Fuente de títulos (H1, H2, logo...)'),
+      fontBody: fontFamilyField('Fuente del cuerpo de texto'),
+      colorPrimary: colorField('Color primario / acento'),
+      colorText: colorField('Color del texto'),
+      colorBackground: colorField('Color de fondo global'),
+    },
+    defaultProps: {
+      fontHeading: '',
+      fontBody: '',
+      colorPrimary: '#b45309',
+      colorText: '#1e293b',
+      colorBackground: '#ffffff',
+    },
+  },
   components: {
     NavbarBlock: {
       label: 'Navbar / Menú',
@@ -66,6 +110,7 @@ export const puckConfig: Config = {
             <MediaPicker value={value as string} onChange={onChange} label="Logo" />
           ),
         },
+        logoText: { type: 'text', label: 'Logo texto (fallback legacy)' },
       },
       defaultProps: navbarBlockDefaultProps,
       render: NavbarBlock,
@@ -76,6 +121,7 @@ export const puckConfig: Config = {
         ...heroBlockFields,
         backgroundColor: colorField('Color de fondo'),
         textColor: colorField('Color del texto'),
+        overlayColor: colorField('Color del overlay sobre imagen'),
         fontFamily: fontFamilyField('Fuente'),
         backgroundImage: {
           type: 'custom',
@@ -282,6 +328,83 @@ export const puckConfig: Config = {
       },
       defaultProps: newsletterBlockDefaultProps,
       render: NewsletterBlock,
+    },
+    CategoryGridBlock: {
+      label: 'Grilla de Categorías',
+      fields: {
+        ...categoryGridBlockFields,
+        backgroundColor: colorField('Color de fondo'),
+        textColor: colorField('Color del texto'),
+        accentColor: colorField('Color de acento'),
+        overlayColor: colorField('Color del overlay'),
+        categories: {
+          type: 'array',
+          label: 'Categorías',
+          arrayFields: {
+            image: {
+              type: 'custom',
+              label: 'Imagen de la categoría',
+              render: ({ value, onChange }) => (
+                <MediaPicker value={value as string} onChange={onChange} label="Imagen de la categoría" />
+              ),
+            },
+            imageAlt: { type: 'text', label: 'Texto alternativo' },
+            name: { type: 'text', label: 'Nombre de la categoría' },
+            description: { type: 'text', label: 'Descripción breve' },
+            url: { type: 'text', label: 'URL de destino' },
+          },
+          defaultItemProps: categoryGridBlockDefaultProps.categories[0],
+          getItemSummary: (item: { name?: string }) => (item.name as string) || 'Categoría',
+        },
+      },
+      defaultProps: categoryGridBlockDefaultProps,
+      render: CategoryGridBlock,
+    },
+    SplitContentBlock: {
+      label: 'Contenido Dividido',
+      fields: {
+        ...splitContentBlockFields,
+        backgroundColor: colorField('Color de fondo'),
+        textColor: colorField('Color del texto'),
+        accentColor: colorField('Color de acento'),
+        images: {
+          type: 'array',
+          label: 'Imágenes',
+          arrayFields: {
+            src: {
+              type: 'custom',
+              label: 'Imagen',
+              render: ({ value, onChange }) => (
+                <MediaPicker value={value as string} onChange={onChange} label="Imagen" />
+              ),
+            },
+            alt: { type: 'text', label: 'Texto alternativo' },
+          },
+          defaultItemProps: splitContentBlockDefaultProps.images[0],
+          getItemSummary: (item: { alt?: string }) => (item.alt as string) || 'Imagen',
+        },
+      },
+      defaultProps: splitContentBlockDefaultProps,
+      render: SplitContentBlock,
+    },
+    FooterBlock: {
+      label: 'Footer / Pie de página',
+      fields: {
+        ...footerBlockFields,
+        backgroundColor: colorField('Color de fondo'),
+        textColor: colorField('Color del texto'),
+        accentColor: colorField('Color de acento'),
+        newsletterBackgroundColor: colorField('Color de fondo del newsletter'),
+        logoImageUrl: {
+          type: 'custom',
+          label: 'Logo (imagen, opcional)',
+          render: ({ value, onChange }) => (
+            <MediaPicker value={value as string} onChange={onChange} label="Logo" />
+          ),
+        },
+      },
+      defaultProps: footerBlockDefaultProps,
+      render: FooterBlock,
     },
   },
 }
