@@ -262,11 +262,20 @@ chore/{nombre}→ setup, configuración, docs
 
 | Sprint | Objetivo | Resultado |
 |--------|---------|-----------|
-| Sprint 03 (actual) | Staging deploy + Templates + Custom domains + Analytics + Cobertura ≥70% | FASE 2 cerrada |
-| Sprint 04 | Deploy producción + Hardening + Docs + E-commerce básico (catálogo) | v1 VENDIBLE |
-| Sprint 05 | Blog/CMS + Formularios avanzados + Multi-idioma | FASE 3 inicio |
-| Sprint 06 | API pública + Plugin marketplace + Analítica avanzada | FASE 3 avance |
-| Sprint 07 | White-label + Performance + Onboarding mejorado | FASE 3 cierre |
+| Sprint 03 (cerrado) | Staging deploy + Templates + Custom domains + Analytics + Cobertura ≥70% | FASE 2 base |
+| Sprint 03.1 (cerrado) | 4 bloques nuevos (Navbar, ProductGrid, Stats, Newsletter) | 14 bloques |
+| Sprint 03.2 (cerrado) | 3 bloques nuevos (CategoryGrid, SplitContent, Footer) + mejoras | 17 bloques |
+| Sprint 04 (actual) | Analytics + Custom Domains + Template Marketplace + Onboarding + Staging | FASE 2 cerrada |
+| Sprint 05 | Deploy producción + Hardening + Docs + E-commerce básico (catálogo) | v1 VENDIBLE |
+| Sprint 06 | Blog/CMS + Formularios avanzados + Multi-idioma | FASE 3 inicio |
+| Sprint 07 | API pública + Plugin marketplace + Analítica avanzada | FASE 3 avance |
+| Sprint 08 | White-label + Performance + Onboarding mejorado | FASE 3 cierre |
 
-**Total restante para v1 vendible**: ~2 sprints (Sprint 03 + 04)
+**Total restante para v1 vendible**: ~2 sprints (Sprint 04 + 05)
 **Total restante para v2 completo**: ~5 sprints
+
+## Sprint 04 — Estado (iniciado 2026-04-26)
+
+**Objetivo**: Completar FASE 2 — Analytics, Custom Domains, Template Marketplace, Onboarding Wizard, Staging Deploy
+**Prompts**: docs/prompts/sprint-04-prompts.md
+**Agentes**: 04 + 03 (paralelo) → 05 + 06 + 08 (paralelo) → 11 + 10 → 09

@@ -207,6 +207,134 @@ const TEMPLATES = [
     sortOrder: 0,
     content: [],
   },
+  // ── Sprint 04 templates ──────────────────────────────────────────────────
+  {
+    id: 'template-tienda-artesanal',
+    name: 'Tienda Artesanal',
+    description: 'Perfecta para tiendas con identidad visual fuerte y catálogo de productos artesanales',
+    category: 'ecommerce',
+    sortOrder: 10,
+    thumbnailUrl: 'https://placehold.co/400x300/8B6914/ffffff?text=Tienda+Artesanal',
+    content: {
+      pages: [
+        {
+          title: 'Inicio',
+          slug: '',
+          isHomepage: true,
+          content: [
+            { type: 'NavbarBlock', props: {} },
+            { type: 'HeroBlock', props: {} },
+            { type: 'CategoryGridBlock', props: {} },
+            { type: 'ProductGridBlock', props: {} },
+            { type: 'SplitContentBlock', props: {} },
+            { type: 'StatsBlock', props: {} },
+            { type: 'NewsletterBlock', props: {} },
+            { type: 'FooterBlock', props: {} },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: 'template-portfolio-creativo',
+    name: 'Portfolio Creativo',
+    description: 'Ideal para fotógrafos, diseñadores y artistas que quieren mostrar su trabajo',
+    category: 'portfolio',
+    sortOrder: 11,
+    thumbnailUrl: 'https://placehold.co/400x300/1a1a2e/ffffff?text=Portfolio+Creativo',
+    content: {
+      pages: [
+        {
+          title: 'Inicio',
+          slug: '',
+          isHomepage: true,
+          content: [
+            { type: 'NavbarBlock', props: {} },
+            { type: 'HeroBlock', props: {} },
+            { type: 'GalleryBlock', props: {} },
+            { type: 'SplitContentBlock', props: {} },
+            { type: 'StatsBlock', props: {} },
+            { type: 'FooterBlock', props: {} },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: 'template-restaurante',
+    name: 'Restaurante',
+    description: 'Diseñada para restaurantes y negocios gastronómicos con menú visual',
+    category: 'restaurant',
+    sortOrder: 12,
+    thumbnailUrl: 'https://placehold.co/400x300/c0392b/ffffff?text=Restaurante',
+    content: {
+      pages: [
+        {
+          title: 'Inicio',
+          slug: '',
+          isHomepage: true,
+          content: [
+            { type: 'NavbarBlock', props: {} },
+            { type: 'HeroBlock', props: {} },
+            { type: 'CategoryGridBlock', props: {} },
+            { type: 'SplitContentBlock', props: {} },
+            { type: 'ContactFormBlock', props: {} },
+            { type: 'FooterBlock', props: {} },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: 'template-agencia-servicios',
+    name: 'Agencia de Servicios',
+    description: 'Para agencias, consultoras y negocios que ofrecen servicios profesionales',
+    category: 'services',
+    sortOrder: 13,
+    thumbnailUrl: 'https://placehold.co/400x300/2c3e50/ffffff?text=Agencia',
+    content: {
+      pages: [
+        {
+          title: 'Inicio',
+          slug: '',
+          isHomepage: true,
+          content: [
+            { type: 'NavbarBlock', props: {} },
+            { type: 'HeroBlock', props: {} },
+            { type: 'CardGridBlock', props: {} },
+            { type: 'StatsBlock', props: {} },
+            { type: 'NewsletterBlock', props: {} },
+            { type: 'FooterBlock', props: {} },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    id: 'template-ong',
+    name: 'ONG / Causa Social',
+    description: 'Para organizaciones sin fines de lucro, fundaciones y causas sociales',
+    category: 'nonprofit',
+    sortOrder: 14,
+    thumbnailUrl: 'https://placehold.co/400x300/27ae60/ffffff?text=ONG',
+    content: {
+      pages: [
+        {
+          title: 'Inicio',
+          slug: '',
+          isHomepage: true,
+          content: [
+            { type: 'NavbarBlock', props: {} },
+            { type: 'HeroBlock', props: {} },
+            { type: 'SplitContentBlock', props: {} },
+            { type: 'StatsBlock', props: {} },
+            { type: 'NewsletterBlock', props: {} },
+            { type: 'FooterBlock', props: {} },
+          ],
+        },
+      ],
+    },
+  },
 ]
 
 async function main() {
@@ -315,7 +443,9 @@ async function main() {
         name: tpl.name,
         description: tpl.description,
         category: tpl.category,
-        content: tpl.content,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        content: tpl.content as any,
+        thumbnailUrl: (tpl as any).thumbnailUrl ?? null,
         isPremium: false,
         isActive: true,
         sortOrder: tpl.sortOrder,
