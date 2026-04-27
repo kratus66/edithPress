@@ -66,38 +66,14 @@ function MediaModal({ isOpen, onClose, onSelect }: MediaModalProps) {
     try {
       const formData = new FormData()
       formData.append('file', file)
-
-      // Get token from localStorage or cookie (same logic as api-client)
-      const token = typeof window !== 'undefined'
-        ? (localStorage.getItem('edithpress_access_token') ?? getCookieToken())
-        : null
-
-      const res = await fetch('/api/v1/media/upload', {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
-      })
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({})) as Record<string, unknown>
-        const msg = (body?.error as Record<string, unknown>)?.message
-        throw new Error(typeof msg === 'string' ? msg : `Error ${res.status}`)
-      }
-
-      // Reload the library after successful upload
+      await builderApi.upload('/media/upload', formData)
       loadMedia()
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Error al subir la imagen')
     } finally {
       setUploading(false)
-      // Reset input so the same file can be re-selected
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
-  }
-
-  function getCookieToken(): string | null {
-    const match = document.cookie.match(/(?:^|;\s*)access_token=([^;]+)/)
-    return match ? decodeURIComponent(match[1]) : null
   }
 
   // Close on Escape

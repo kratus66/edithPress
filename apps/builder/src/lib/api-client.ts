@@ -83,4 +83,15 @@ export const builderApi = {
       headers: authHeaders(),
       body: JSON.stringify(body),
     }).then((res) => parseResponse<T>(res)),
+
+  // Para multipart/form-data — NO incluir Content-Type para que el browser
+  // ponga el boundary correcto automáticamente
+  upload: <T>(path: string, formData: FormData): Promise<T> => {
+    const token = getToken()
+    return fetch(`${BASE_URL}/api/v1${path}`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    }).then((res) => parseResponse<T>(res))
+  },
 }

@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 const PRESETS = [
   // Neutros
@@ -31,11 +32,39 @@ interface ColorPickerFieldProps {
 
 export function ColorPickerField({ value, onChange }: ColorPickerFieldProps) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 })
+  const [mounted, setMounted] = useState(false)
+  const swatchRef = useRef<HTMLButtonElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const nativeRef = useRef<HTMLInputElement>(null)
+  const nativeButtonRef = useRef<HTMLButtonElement>(null)
+
+  // Asegura que el portal solo se renderiza en el cliente
+  useEffect(() => { setMounted(true) }, [])
+
+  const openDropdown = useCallback(() => {
+    if (swatchRef.current) {
+      const rect = swatchRef.current.getBoundingClientRect()
+      setDropdownPos({ top: rect.bottom + 4, left: rect.left })
+    }
+    setOpen(v => !v)
+  }, [])
+
+  const openNativePicker = useCallback(() => {
+    if (!nativeRef.current || !nativeButtonRef.current) return
+    // Mover el input al lugar exacto del botón (sin re-render) y abrir el picker
+    const rect = nativeButtonRef.current.getBoundingClientRect()
+    nativeRef.current.style.top = `${rect.top}px`
+    nativeRef.current.style.left = `${rect.left}px`
+    nativeRef.current.click()
+  }, [])
 
   useEffect(() => {
     function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
+        swatchRef.current && !swatchRef.current.contains(e.target as Node)
+      ) {
         setOpen(false)
       }
     }
@@ -46,13 +75,14 @@ export function ColorPickerField({ value, onChange }: ColorPickerFieldProps) {
   const safeColor = /^#[0-9a-fA-F]{6}$/.test(value) ? value : '#000000'
 
   return (
-    <div ref={ref} style={{ position: 'relative', fontFamily: 'sans-serif' }}>
-      {/* Fila principal: swatch + hex input + selector nativo */}
+    <div style={{ position: 'relative', fontFamily: 'sans-serif' }}>
+      {/* Fila principal: swatch paleta + hex input + botón selector nativo */}
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
         <button
+          ref={swatchRef}
           type="button"
-          onClick={() => setOpen(v => !v)}
-          title="Abrir paleta"
+          onClick={openDropdown}
+          title="Abrir paleta de colores"
           style={{
             width: 32, height: 32, flexShrink: 0,
             borderRadius: 6, cursor: 'pointer',
@@ -73,27 +103,60 @@ export function ColorPickerField({ value, onChange }: ColorPickerFieldProps) {
             outline: 'none',
           }}
         />
-        <input
-          type="color"
-          value={safeColor}
-          onChange={e => onChange(e.target.value)}
-          title="Selector nativo"
+        {/* Botón que activa el selector nativo via portal */}
+        <button
+          ref={nativeButtonRef}
+          type="button"
+          onClick={openNativePicker}
+          title="Abrir selector de color del sistema"
           style={{
-            width: 32, height: 32, padding: 2,
-            borderRadius: 6, border: '1px solid #e2e8f0',
-            cursor: 'pointer', flexShrink: 0,
+            width: 32, height: 32, flexShrink: 0,
+            borderRadius: 6, cursor: 'pointer',
+            background: safeColor,
+            border: '2px solid #e2e8f0',
+            boxShadow: '0 1px 3px rgba(0,0,0,.12)',
+            padding: 0,
           }}
         />
       </div>
 
-      {/* Paleta desplegable */}
+      {/* Input nativo en document.body — se reposiciona al botón antes del .click() */}
+      {mounted && createPortal(
+        <input
+          ref={nativeRef}
+          type="color"
+          value={safeColor}
+          onChange={e => onChange(e.target.value)}
+          style={{
+            position: 'fixed',
+            top: '0px',
+            left: '0px',
+            width: '1px',
+            height: '1px',
+            opacity: 0,
+            pointerEvents: 'none',
+            border: 'none',
+            padding: 0,
+          }}
+          tabIndex={-1}
+        />,
+        document.body
+      )}
+
+      {/* Paleta desplegable — usa position:fixed para escapar del overflow del panel */}
       {open && (
-        <div style={{
-          position: 'absolute', top: 38, left: 0, zIndex: 9999,
-          background: '#fff', borderRadius: 10, padding: 10,
-          boxShadow: '0 8px 32px rgba(0,0,0,.18)',
-          border: '1px solid #e2e8f0', width: 218,
-        }}>
+        <div
+          ref={dropdownRef}
+          style={{
+            position: 'fixed',
+            top: dropdownPos.top,
+            left: dropdownPos.left,
+            zIndex: 99999,
+            background: '#fff', borderRadius: 10, padding: 10,
+            boxShadow: '0 8px 32px rgba(0,0,0,.18)',
+            border: '1px solid #e2e8f0', width: 218,
+          }}
+        >
           <p style={{ margin: '0 0 8px', fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em' }}>
             Paleta de colores
           </p>

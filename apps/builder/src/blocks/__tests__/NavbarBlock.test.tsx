@@ -9,8 +9,8 @@ describe('NavbarBlock', () => {
     expect(container.firstChild).toBeTruthy()
   })
 
-  it('renders logoText when logoImageUrl is empty', () => {
-    render(<NavbarBlock {...navbarBlockDefaultProps} logoText="Mi Tienda" logoImageUrl="" />)
+  it('renders logoText when logoImageUrl is empty and logoLines is empty', () => {
+    render(<NavbarBlock {...navbarBlockDefaultProps} logoText="Mi Tienda" logoImageUrl="" logoLines={[]} />)
     expect(screen.getByText('Mi Tienda')).toBeTruthy()
   })
 
