@@ -1,5 +1,6 @@
 import React from 'react'
 import type { Fields } from '@measured/puck'
+import { makeCollapsibleRadio } from '@/lib/fieldHelpers'
 
 export interface ImageBlockProps {
   src: string
@@ -20,24 +21,16 @@ export const imageBlockFields: Fields<ImageBlockProps> = {
   src: { type: 'text', label: 'URL de la imagen' },
   alt: { type: 'text', label: 'Texto alternativo (accesibilidad)' },
   caption: { type: 'text', label: 'Pie de foto (opcional)' },
-  width: {
-    type: 'radio',
-    label: 'Ancho',
-    options: [
-      { label: 'Contenido', value: 'content' },
-      { label: 'Completo', value: 'full' },
-    ],
-  },
-  borderRadius: {
-    type: 'radio',
-    label: 'Bordes redondeados',
-    options: [
-      { label: 'Sin redondeo', value: 'none' },
-      { label: 'Pequeño', value: 'sm' },
-      { label: 'Mediano', value: 'md' },
-      { label: 'Grande', value: 'lg' },
-    ],
-  },
+  width: makeCollapsibleRadio('Ancho', [
+    { label: 'Contenido', value: 'content' },
+    { label: 'Completo', value: 'full' },
+  ]) as Fields<ImageBlockProps>['width'],
+  borderRadius: makeCollapsibleRadio('Bordes redondeados', [
+    { label: 'Sin redondeo', value: 'none' },
+    { label: 'Pequeño', value: 'sm' },
+    { label: 'Mediano', value: 'md' },
+    { label: 'Grande', value: 'lg' },
+  ]) as Fields<ImageBlockProps>['borderRadius'],
 }
 
 export const imageBlockDefaultProps: ImageBlockProps = {

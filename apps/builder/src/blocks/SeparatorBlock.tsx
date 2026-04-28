@@ -1,5 +1,6 @@
 import React from 'react'
 import type { Fields } from '@measured/puck'
+import { makeCollapsibleRadio, makeCollapsibleColor } from '@/lib/fieldHelpers'
 
 export interface SeparatorBlockProps {
   style: 'solid' | 'dashed' | 'dotted'
@@ -22,40 +23,28 @@ const maxWidthMap: Record<SeparatorBlockProps['maxWidth'], string> = {
 }
 
 export const separatorBlockFields: Fields<SeparatorBlockProps> = {
-  style: {
-    type: 'radio',
-    label: 'Estilo de línea',
-    options: [
-      { label: 'Sólida', value: 'solid' },
-      { label: 'Discontinua', value: 'dashed' },
-      { label: 'Punteada', value: 'dotted' },
-    ],
-  },
-  color: { type: 'text', label: 'Color (hex)' },
+  style: makeCollapsibleRadio('Estilo de línea', [
+    { label: 'Sólida', value: 'solid' },
+    { label: 'Discontinua', value: 'dashed' },
+    { label: 'Punteada', value: 'dotted' },
+  ]) as Fields<SeparatorBlockProps>['style'],
+  color: makeCollapsibleColor('Color') as Fields<SeparatorBlockProps>['color'],
   thickness: {
     type: 'number',
     label: 'Grosor (px)',
     min: 1,
     max: 8,
   },
-  paddingY: {
-    type: 'radio',
-    label: 'Espaciado vertical',
-    options: [
-      { label: 'Pequeño', value: 'sm' },
-      { label: 'Mediano', value: 'md' },
-      { label: 'Grande', value: 'lg' },
-    ],
-  },
-  maxWidth: {
-    type: 'radio',
-    label: 'Ancho',
-    options: [
-      { label: 'Estrecho', value: 'narrow' },
-      { label: 'Normal', value: 'normal' },
-      { label: 'Completo', value: 'full' },
-    ],
-  },
+  paddingY: makeCollapsibleRadio('Espaciado vertical', [
+    { label: 'Pequeño', value: 'sm' },
+    { label: 'Mediano', value: 'md' },
+    { label: 'Grande', value: 'lg' },
+  ]) as Fields<SeparatorBlockProps>['paddingY'],
+  maxWidth: makeCollapsibleRadio('Ancho', [
+    { label: 'Estrecho', value: 'narrow' },
+    { label: 'Normal', value: 'normal' },
+    { label: 'Completo', value: 'full' },
+  ]) as Fields<SeparatorBlockProps>['maxWidth'],
 }
 
 export const separatorBlockDefaultProps: SeparatorBlockProps = {

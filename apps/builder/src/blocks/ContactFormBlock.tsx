@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react'
 import type { Fields } from '@measured/puck'
+import { makeCollapsibleRadio, makeCollapsibleColor } from '@/lib/fieldHelpers'
 
 export interface ContactFormBlockProps {
   title: string
@@ -32,17 +33,13 @@ export const contactFormBlockFields: Fields<ContactFormBlockProps> = {
   buttonText: { type: 'text', label: 'Texto del botón de envío' },
   successMessage: { type: 'text', label: 'Mensaje de éxito' },
   errorMessage: { type: 'text', label: 'Mensaje de error' },
-  backgroundColor: { type: 'text', label: 'Color de fondo (hex)' },
-  accentColor: { type: 'text', label: 'Color de acento (hex)' },
-  padding: {
-    type: 'radio',
-    label: 'Espaciado vertical',
-    options: [
-      { label: 'Pequeño', value: 'sm' },
-      { label: 'Mediano', value: 'md' },
-      { label: 'Grande', value: 'lg' },
-    ],
-  },
+  backgroundColor: makeCollapsibleColor('Color de fondo') as Fields<ContactFormBlockProps>['backgroundColor'],
+  accentColor: makeCollapsibleColor('Color de acento') as Fields<ContactFormBlockProps>['accentColor'],
+  padding: makeCollapsibleRadio('Espaciado vertical', [
+    { label: 'Pequeño', value: 'sm' },
+    { label: 'Mediano', value: 'md' },
+    { label: 'Grande', value: 'lg' },
+  ]) as Fields<ContactFormBlockProps>['padding'],
 }
 
 export const contactFormBlockDefaultProps: ContactFormBlockProps = {

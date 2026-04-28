@@ -1,5 +1,6 @@
 import React from 'react'
 import type { Fields } from '@measured/puck'
+import { makeCollapsibleRadio, makeCollapsibleColor } from '@/lib/fieldHelpers'
 
 export interface CategoryGridBlockProps {
   eyebrowText: string
@@ -29,15 +30,11 @@ const aspectRatioMap: Record<CategoryGridBlockProps['cardAspectRatio'], string> 
 export const categoryGridBlockFields: Fields<CategoryGridBlockProps> = {
   eyebrowText: { type: 'text', label: 'Texto eyebrow (ej: NUESTRAS CATEGORÍAS)' },
   title: { type: 'text', label: 'Título de la sección' },
-  columns: {
-    type: 'radio',
-    label: 'Columnas',
-    options: [
-      { label: '2', value: 2 as unknown as string },
-      { label: '3', value: 3 as unknown as string },
-      { label: '4', value: 4 as unknown as string },
-    ],
-  },
+  columns: makeCollapsibleRadio('Columnas', [
+    { label: '2', value: '2' },
+    { label: '3', value: '3' },
+    { label: '4', value: '4' },
+  ]) as Fields<CategoryGridBlockProps>['columns'],
   categories: {
     type: 'array',
     label: 'Categorías',
@@ -57,20 +54,16 @@ export const categoryGridBlockFields: Fields<CategoryGridBlockProps> = {
     },
     getItemSummary: (item: { name?: string }) => (item.name as string) || 'Categoría',
   },
-  cardAspectRatio: {
-    type: 'radio',
-    label: 'Proporción de imagen',
-    options: [
-      { label: 'Cuadrada', value: 'square' },
-      { label: 'Retrato', value: 'portrait' },
-      { label: 'Paisaje', value: 'landscape' },
-    ],
-  },
-  overlayColor: { type: 'text', label: 'Color del overlay (hex)' },
+  cardAspectRatio: makeCollapsibleRadio('Proporción de imagen', [
+    { label: 'Cuadrada', value: 'square' },
+    { label: 'Retrato', value: 'portrait' },
+    { label: 'Paisaje', value: 'landscape' },
+  ]) as Fields<CategoryGridBlockProps>['cardAspectRatio'],
+  overlayColor: makeCollapsibleColor('Color del overlay') as Fields<CategoryGridBlockProps>['overlayColor'],
   overlayOpacity: { type: 'number', label: 'Opacidad del overlay (0–100)' },
-  backgroundColor: { type: 'text', label: 'Color de fondo (hex)' },
-  textColor: { type: 'text', label: 'Color del texto (hex)' },
-  accentColor: { type: 'text', label: 'Color de acento (hex)' },
+  backgroundColor: makeCollapsibleColor('Color de fondo') as Fields<CategoryGridBlockProps>['backgroundColor'],
+  textColor: makeCollapsibleColor('Color del texto') as Fields<CategoryGridBlockProps>['textColor'],
+  accentColor: makeCollapsibleColor('Color de acento') as Fields<CategoryGridBlockProps>['accentColor'],
 }
 
 export const categoryGridBlockDefaultProps: CategoryGridBlockProps = {

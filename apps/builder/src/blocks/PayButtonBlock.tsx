@@ -1,6 +1,6 @@
 import React from 'react'
 import type { Fields } from '@measured/puck'
-import { ColorPickerField } from '@/components/ColorPickerField'
+import { makeCollapsibleRadio, makeCollapsibleColor } from '@/lib/fieldHelpers'
 
 export interface PayButtonBlockProps {
   productName: string
@@ -38,56 +38,24 @@ export const payButtonBlockFields: Fields<PayButtonBlockProps> = {
   description: { type: 'textarea', label: 'Descripción (opcional)' },
   price: { type: 'text', label: 'Precio (ej: $85.000)' },
   image: { type: 'text', label: 'URL de imagen del producto (opcional)' },
-  provider: {
-    type: 'radio',
-    label: 'Pasarela de pago',
-    options: [
-      { label: 'Wompi', value: 'wompi' },
-      { label: 'PayU', value: 'payu' },
-      { label: 'Mercado Pago', value: 'mercadopago' },
-      { label: 'Nequi', value: 'nequi' },
-      { label: 'Otro', value: 'otro' },
-    ],
-  },
+  provider: makeCollapsibleRadio('Pasarela de pago', [
+    { label: 'Wompi', value: 'wompi' },
+    { label: 'PayU', value: 'payu' },
+    { label: 'Mercado Pago', value: 'mercadopago' },
+    { label: 'Nequi', value: 'nequi' },
+    { label: 'Otro', value: 'otro' },
+  ]) as Fields<PayButtonBlockProps>['provider'],
   paymentLink: { type: 'text', label: 'Enlace de pago (URL generada en tu pasarela)' },
   buttonText: { type: 'text', label: 'Texto del botón' },
-  buttonColor: {
-    type: 'custom',
-    label: 'Color del botón',
-    render: ({ value, onChange }: { value: unknown; onChange: (v: string) => void }) => (
-      <ColorPickerField value={value as string} onChange={onChange} />
-    ),
-  },
-  buttonTextColor: {
-    type: 'custom',
-    label: 'Color del texto del botón',
-    render: ({ value, onChange }: { value: unknown; onChange: (v: string) => void }) => (
-      <ColorPickerField value={value as string} onChange={onChange} />
-    ),
-  },
-  backgroundColor: {
-    type: 'custom',
-    label: 'Color de fondo',
-    render: ({ value, onChange }: { value: unknown; onChange: (v: string) => void }) => (
-      <ColorPickerField value={value as string} onChange={onChange} />
-    ),
-  },
-  textColor: {
-    type: 'custom',
-    label: 'Color del texto',
-    render: ({ value, onChange }: { value: unknown; onChange: (v: string) => void }) => (
-      <ColorPickerField value={value as string} onChange={onChange} />
-    ),
-  },
+  buttonColor: makeCollapsibleColor('Color del botón') as Fields<PayButtonBlockProps>['buttonColor'],
+  buttonTextColor: makeCollapsibleColor('Color del texto del botón') as Fields<PayButtonBlockProps>['buttonTextColor'],
+  backgroundColor: makeCollapsibleColor('Color de fondo') as Fields<PayButtonBlockProps>['backgroundColor'],
+  textColor: makeCollapsibleColor('Color del texto') as Fields<PayButtonBlockProps>['textColor'],
   note: { type: 'text', label: 'Nota debajo del botón (opcional, ej: Envío incluido)' },
-  layout: {
-    type: 'radio',
-    label: 'Diseño',
-    options: [
-      { label: 'Tarjeta centrada', value: 'card' },
-      { label: 'Banner horizontal', value: 'banner' },
-    ],
-  },
+  layout: makeCollapsibleRadio('Diseño', [
+    { label: 'Tarjeta centrada', value: 'card' },
+    { label: 'Banner horizontal', value: 'banner' },
+  ]) as Fields<PayButtonBlockProps>['layout'],
 }
 
 export const payButtonBlockDefaultProps: PayButtonBlockProps = {

@@ -1,5 +1,6 @@
 import React from 'react'
 import type { Fields } from '@measured/puck'
+import { makeCollapsibleRadio, makeCollapsibleColor } from '@/lib/fieldHelpers'
 
 export interface StatsBlockProps {
   stats: Array<{
@@ -33,26 +34,18 @@ export const statsBlockFields: Fields<StatsBlockProps> = {
     getItemSummary: (item: { label?: string; value?: string }) =>
       `${(item.value as string) || ''} ${(item.label as string) || 'Estadística'}`.trim(),
   },
-  backgroundColor: { type: 'text', label: 'Color de fondo (hex)' },
-  textColor: { type: 'text', label: 'Color del texto (hex)' },
-  accentColor: { type: 'text', label: 'Color del valor/número (hex)' },
-  layout: {
-    type: 'radio',
-    label: 'Estilo',
-    options: [
-      { label: 'Fila simple', value: 'row' },
-      { label: 'Con separadores', value: 'row-with-dividers' },
-    ],
-  },
-  padding: {
-    type: 'radio',
-    label: 'Espaciado',
-    options: [
-      { label: 'Pequeño', value: 'sm' },
-      { label: 'Mediano', value: 'md' },
-      { label: 'Grande', value: 'lg' },
-    ],
-  },
+  backgroundColor: makeCollapsibleColor('Color de fondo') as Fields<StatsBlockProps>['backgroundColor'],
+  textColor: makeCollapsibleColor('Color del texto') as Fields<StatsBlockProps>['textColor'],
+  accentColor: makeCollapsibleColor('Color del valor/número') as Fields<StatsBlockProps>['accentColor'],
+  layout: makeCollapsibleRadio('Estilo', [
+    { label: 'Fila simple', value: 'row' },
+    { label: 'Con separadores', value: 'row-with-dividers' },
+  ]) as Fields<StatsBlockProps>['layout'],
+  padding: makeCollapsibleRadio('Espaciado', [
+    { label: 'Pequeño', value: 'sm' },
+    { label: 'Mediano', value: 'md' },
+    { label: 'Grande', value: 'lg' },
+  ]) as Fields<StatsBlockProps>['padding'],
 }
 
 export const statsBlockDefaultProps: StatsBlockProps = {

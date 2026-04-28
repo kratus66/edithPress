@@ -1,5 +1,6 @@
 import React from 'react'
 import type { Fields } from '@measured/puck'
+import { makeCollapsibleRadio } from '@/lib/fieldHelpers'
 
 export interface VideoBlockProps {
   videoUrl: string
@@ -47,14 +48,10 @@ export const videoBlockFields: Fields<VideoBlockProps> = {
       { label: '1:1', value: '1/1' },
     ],
   },
-  autoplay: {
-    type: 'radio',
-    label: 'Autoplay (muted)',
-    options: [
-      { label: 'No', value: 'false' },
-      { label: 'Sí', value: 'true' },
-    ],
-  },
+  autoplay: makeCollapsibleRadio('Autoplay (muted)', [
+    { label: 'No', value: 'false' },
+    { label: 'Sí', value: 'true' },
+  ]) as Fields<VideoBlockProps>['autoplay'],
 }
 
 export const videoBlockDefaultProps: VideoBlockProps = {

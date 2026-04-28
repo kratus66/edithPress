@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 
 const PRESETS = [
   // Neutros
@@ -33,14 +32,9 @@ interface ColorPickerFieldProps {
 export function ColorPickerField({ value, onChange }: ColorPickerFieldProps) {
   const [open, setOpen] = useState(false)
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 })
-  const [mounted, setMounted] = useState(false)
   const swatchRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const nativeRef = useRef<HTMLInputElement>(null)
-  const nativeButtonRef = useRef<HTMLButtonElement>(null)
-
-  // Asegura que el portal solo se renderiza en el cliente
-  useEffect(() => { setMounted(true) }, [])
 
   const openDropdown = useCallback(() => {
     if (swatchRef.current) {
@@ -51,12 +45,14 @@ export function ColorPickerField({ value, onChange }: ColorPickerFieldProps) {
   }, [])
 
   const openNativePicker = useCallback(() => {
-    if (!nativeRef.current || !nativeButtonRef.current) return
-    // Mover el input al lugar exacto del botón (sin re-render) y abrir el picker
-    const rect = nativeButtonRef.current.getBoundingClientRect()
-    nativeRef.current.style.top = `${rect.top}px`
-    nativeRef.current.style.left = `${rect.left}px`
-    nativeRef.current.click()
+    const el = nativeRef.current
+    if (!el) return
+    try {
+      // showPicker() abre el diálogo del sistema desde un gesto de usuario
+      ;(el as HTMLInputElement & { showPicker?: () => void }).showPicker?.()
+    } catch {
+      el.click()
+    }
   }, [])
 
   useEffect(() => {
@@ -104,46 +100,39 @@ export function ColorPickerField({ value, onChange }: ColorPickerFieldProps) {
             outline: 'none',
           }}
         />
-        {/* Botón que activa el selector nativo via portal */}
-        <button
-          ref={nativeButtonRef}
-          type="button"
-          onClick={openNativePicker}
-          title="Abrir selector de color del sistema"
-          aria-label="Abrir selector de color del sistema"
-          style={{
-            width: 36, height: 36, flexShrink: 0,
-            borderRadius: 6, cursor: 'pointer',
-            background: safeColor,
-            border: '2px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0,0,0,.12)',
-            padding: 0,
-          }}
-        />
+        {/* Swatch derecho: botón visible + input oculto activado con showPicker() */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={openNativePicker}
+            title="Abrir selector de color del sistema"
+            aria-label="Abrir selector de color del sistema"
+            style={{
+              width: 36, height: 36,
+              borderRadius: 6, cursor: 'pointer',
+              background: safeColor,
+              border: '2px solid #e2e8f0',
+              boxShadow: '0 1px 3px rgba(0,0,0,.12)',
+              padding: 0, display: 'block',
+            }}
+          />
+          <input
+            ref={nativeRef}
+            type="color"
+            value={safeColor}
+            onChange={e => onChange(e.target.value)}
+            tabIndex={-1}
+            style={{
+              position: 'absolute',
+              top: 0, left: 0,
+              width: 1, height: 1,
+              opacity: 0.01,
+              pointerEvents: 'none',
+              border: 'none', padding: 0,
+            }}
+          />
+        </div>
       </div>
-
-      {/* Input nativo en document.body — se reposiciona al botón antes del .click() */}
-      {mounted && createPortal(
-        <input
-          ref={nativeRef}
-          type="color"
-          value={safeColor}
-          onChange={e => onChange(e.target.value)}
-          style={{
-            position: 'fixed',
-            top: '0px',
-            left: '0px',
-            width: '1px',
-            height: '1px',
-            opacity: 0,
-            pointerEvents: 'none',
-            border: 'none',
-            padding: 0,
-          }}
-          tabIndex={-1}
-        />,
-        document.body
-      )}
 
       {/* Paleta desplegable — usa position:fixed para escapar del overflow del panel */}
       {open && (

@@ -1,5 +1,6 @@
 import React from 'react'
 import type { Fields } from '@measured/puck'
+import { makeCollapsibleRadio, makeCollapsibleColor } from '@/lib/fieldHelpers'
 
 export interface SplitContentBlockProps {
   eyebrowText: string
@@ -28,22 +29,14 @@ export const splitContentBlockFields: Fields<SplitContentBlockProps> = {
   eyebrowText: { type: 'text', label: 'Texto eyebrow (ej: NUESTRA HISTORIA)' },
   title: { type: 'text', label: 'Título' },
   body: { type: 'textarea', label: 'Cuerpo de texto (\\n = párrafo nuevo)' },
-  imagePosition: {
-    type: 'radio',
-    label: 'Posición de la imagen',
-    options: [
-      { label: 'Izquierda', value: 'left' },
-      { label: 'Derecha', value: 'right' },
-    ],
-  },
-  imageLayout: {
-    type: 'radio',
-    label: 'Layout de imagen',
-    options: [
-      { label: 'Una imagen', value: 'single' },
-      { label: 'Collage', value: 'collage' },
-    ],
-  },
+  imagePosition: makeCollapsibleRadio('Posición de la imagen', [
+    { label: 'Izquierda', value: 'left' },
+    { label: 'Derecha', value: 'right' },
+  ]) as Fields<SplitContentBlockProps>['imagePosition'],
+  imageLayout: makeCollapsibleRadio('Layout de imagen', [
+    { label: 'Una imagen', value: 'single' },
+    { label: 'Collage', value: 'collage' },
+  ]) as Fields<SplitContentBlockProps>['imageLayout'],
   images: {
     type: 'array',
     label: 'Imágenes',
@@ -72,28 +65,20 @@ export const splitContentBlockFields: Fields<SplitContentBlockProps> = {
   },
   ctaText: { type: 'text', label: 'Texto del botón CTA' },
   ctaUrl: { type: 'text', label: 'URL del botón CTA' },
-  ctaVariant: {
-    type: 'radio',
-    label: 'Estilo del botón',
-    options: [
-      { label: 'Sólido', value: 'solid' },
-      { label: 'Contorno', value: 'outline' },
-      { label: 'Ghost', value: 'ghost' },
-      { label: 'Sin botón', value: 'none' },
-    ],
-  },
-  backgroundColor: { type: 'text', label: 'Color de fondo (hex)' },
-  textColor: { type: 'text', label: 'Color del texto (hex)' },
-  accentColor: { type: 'text', label: 'Color de acento (hex)' },
-  gap: {
-    type: 'radio',
-    label: 'Espacio entre columnas',
-    options: [
-      { label: 'Pequeño', value: 'sm' },
-      { label: 'Mediano', value: 'md' },
-      { label: 'Grande', value: 'lg' },
-    ],
-  },
+  ctaVariant: makeCollapsibleRadio('Estilo del botón', [
+    { label: 'Sólido', value: 'solid' },
+    { label: 'Contorno', value: 'outline' },
+    { label: 'Ghost', value: 'ghost' },
+    { label: 'Sin botón', value: 'none' },
+  ]) as Fields<SplitContentBlockProps>['ctaVariant'],
+  backgroundColor: makeCollapsibleColor('Color de fondo') as Fields<SplitContentBlockProps>['backgroundColor'],
+  textColor: makeCollapsibleColor('Color del texto') as Fields<SplitContentBlockProps>['textColor'],
+  accentColor: makeCollapsibleColor('Color de acento') as Fields<SplitContentBlockProps>['accentColor'],
+  gap: makeCollapsibleRadio('Espacio entre columnas', [
+    { label: 'Pequeño', value: 'sm' },
+    { label: 'Mediano', value: 'md' },
+    { label: 'Grande', value: 'lg' },
+  ]) as Fields<SplitContentBlockProps>['gap'],
 }
 
 export const splitContentBlockDefaultProps: SplitContentBlockProps = {

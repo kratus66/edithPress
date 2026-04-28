@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import type { Fields } from '@measured/puck'
+import { makeCollapsibleRadio, makeCollapsibleColor } from '@/lib/fieldHelpers'
 
 export interface ProductGridBlockProps {
   title: string
@@ -40,15 +41,11 @@ const cardStyleMap: Record<ProductGridBlockProps['cardStyle'], React.CSSProperti
 export const productGridBlockFields: Fields<ProductGridBlockProps> = {
   title: { type: 'text', label: 'Título de la sección' },
   subtitle: { type: 'text', label: 'Subtítulo (opcional)' },
-  columns: {
-    type: 'radio',
-    label: 'Columnas',
-    options: [
-      { label: '2', value: 2 as unknown as string },
-      { label: '3', value: 3 as unknown as string },
-      { label: '4', value: 4 as unknown as string },
-    ],
-  },
+  columns: makeCollapsibleRadio('Columnas', [
+    { label: '2', value: '2' },
+    { label: '3', value: '3' },
+    { label: '4', value: '4' },
+  ]) as Fields<ProductGridBlockProps>['columns'],
   products: {
     type: 'array',
     label: 'Productos',
@@ -85,54 +82,34 @@ export const productGridBlockFields: Fields<ProductGridBlockProps> = {
     },
     getItemSummary: (item: { name?: string }) => (item.name as string) || 'Producto',
   },
-  backgroundColor: { type: 'text', label: 'Color de fondo (hex)' },
-  textColor: { type: 'text', label: 'Color del texto (hex)' },
-  accentColor: { type: 'text', label: 'Color de acento (hex)' },
-  showCategory: {
-    type: 'radio',
-    label: 'Mostrar categoría',
-    options: [
-      { label: 'Sí', value: true as unknown as string },
-      { label: 'No', value: false as unknown as string },
-    ],
-  },
-  showArtisan: {
-    type: 'radio',
-    label: 'Mostrar artesano/a',
-    options: [
-      { label: 'Sí', value: true as unknown as string },
-      { label: 'No', value: false as unknown as string },
-    ],
-  },
-  cardStyle: {
-    type: 'radio',
-    label: 'Estilo de tarjeta',
-    options: [
-      { label: 'Sombra', value: 'shadow' },
-      { label: 'Borde', value: 'border' },
-      { label: 'Minimal', value: 'minimal' },
-    ],
-  },
+  backgroundColor: makeCollapsibleColor('Color de fondo') as Fields<ProductGridBlockProps>['backgroundColor'],
+  textColor: makeCollapsibleColor('Color del texto') as Fields<ProductGridBlockProps>['textColor'],
+  accentColor: makeCollapsibleColor('Color de acento') as Fields<ProductGridBlockProps>['accentColor'],
+  showCategory: makeCollapsibleRadio('Mostrar categoría', [
+    { label: 'Sí', value: 'true' },
+    { label: 'No', value: 'false' },
+  ]) as Fields<ProductGridBlockProps>['showCategory'],
+  showArtisan: makeCollapsibleRadio('Mostrar artesano/a', [
+    { label: 'Sí', value: 'true' },
+    { label: 'No', value: 'false' },
+  ]) as Fields<ProductGridBlockProps>['showArtisan'],
+  cardStyle: makeCollapsibleRadio('Estilo de tarjeta', [
+    { label: 'Sombra', value: 'shadow' },
+    { label: 'Borde', value: 'border' },
+    { label: 'Minimal', value: 'minimal' },
+  ]) as Fields<ProductGridBlockProps>['cardStyle'],
   whatsappPhone: { type: 'text', label: 'Número de WhatsApp (ej: 573001234567, sin + ni espacios)' },
   eyebrowText: { type: 'text', label: 'Texto eyebrow (sobre el título, opcional)' },
   viewAllText: { type: 'text', label: 'Texto del enlace "Ver todos" (opcional)' },
   viewAllUrl: { type: 'text', label: 'URL del enlace "Ver todos"' },
-  categoryPosition: {
-    type: 'radio',
-    label: 'Posición de la categoría',
-    options: [
-      { label: 'Badge sobre imagen', value: 'badge' },
-      { label: 'Sobre el nombre', value: 'above-name' },
-    ],
-  },
-  showCta: {
-    type: 'radio',
-    label: 'Mostrar botón CTA en cada producto',
-    options: [
-      { label: 'Sí', value: true as unknown as string },
-      { label: 'No', value: false as unknown as string },
-    ],
-  },
+  categoryPosition: makeCollapsibleRadio('Posición categoría', [
+    { label: 'Badge sobre imagen', value: 'badge' },
+    { label: 'Sobre el nombre', value: 'above-name' },
+  ]) as Fields<ProductGridBlockProps>['categoryPosition'],
+  showCta: makeCollapsibleRadio('Mostrar botón CTA', [
+    { label: 'Sí', value: 'true' },
+    { label: 'No', value: 'false' },
+  ]) as Fields<ProductGridBlockProps>['showCta'],
 }
 
 export const productGridBlockDefaultProps: ProductGridBlockProps = {

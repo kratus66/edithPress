@@ -1,5 +1,6 @@
 import React from 'react'
 import type { Fields } from '@measured/puck'
+import { makeCollapsibleRadio, makeCollapsibleColor } from '@/lib/fieldHelpers'
 
 export type SocialPlatform = 'instagram' | 'facebook' | 'twitter' | 'youtube' | 'tiktok' | 'linkedin'
 
@@ -128,22 +129,18 @@ export const footerBlockFields: Fields<FooterBlockProps> = {
     defaultItemProps: { label: 'Enlace legal', url: '#' },
     getItemSummary: (item: { label?: string }) => (item.label as string) || 'Enlace legal',
   },
-  backgroundColor: { type: 'text', label: 'Color de fondo (hex)' },
-  textColor: { type: 'text', label: 'Color del texto (hex)' },
-  accentColor: { type: 'text', label: 'Color de acento (hex)' },
-  showNewsletter: {
-    type: 'radio',
-    label: 'Mostrar sección newsletter',
-    options: [
-      { label: 'Sí', value: true as unknown as string },
-      { label: 'No', value: false as unknown as string },
-    ],
-  },
+  backgroundColor: makeCollapsibleColor('Color de fondo') as Fields<FooterBlockProps>['backgroundColor'],
+  textColor: makeCollapsibleColor('Color del texto') as Fields<FooterBlockProps>['textColor'],
+  accentColor: makeCollapsibleColor('Color de acento') as Fields<FooterBlockProps>['accentColor'],
+  showNewsletter: makeCollapsibleRadio('Mostrar newsletter', [
+    { label: 'Sí', value: 'true' },
+    { label: 'No', value: 'false' },
+  ]) as Fields<FooterBlockProps>['showNewsletter'],
   newsletterTitle: { type: 'text', label: 'Título del newsletter' },
   newsletterSubtitle: { type: 'text', label: 'Subtítulo del newsletter' },
   newsletterPlaceholder: { type: 'text', label: 'Placeholder del input' },
   newsletterButtonText: { type: 'text', label: 'Texto del botón de suscripción' },
-  newsletterBackgroundColor: { type: 'text', label: 'Color de fondo del newsletter (hex)' },
+  newsletterBackgroundColor: makeCollapsibleColor('Color de fondo newsletter') as Fields<FooterBlockProps>['newsletterBackgroundColor'],
 }
 
 export const footerBlockDefaultProps: FooterBlockProps = {
@@ -200,6 +197,10 @@ export const footerBlockDefaultProps: FooterBlockProps = {
   newsletterBackgroundColor: '#2d1a0a',
 }
 
+function isTruthy(v: unknown): boolean {
+  return v !== false && v !== 'false' && Boolean(v)
+}
+
 export function FooterBlock({
   logoText,
   logoSubtext,
@@ -223,11 +224,12 @@ export function FooterBlock({
   newsletterBackgroundColor,
 }: FooterBlockProps) {
   const mutedColor = `${textColor}99`
+  const hasNewsletter = isTruthy(showNewsletter)
 
   return (
     <footer style={{ backgroundColor, color: textColor, fontFamily: 'inherit' }}>
       {/* Newsletter band */}
-      {showNewsletter && (
+      {hasNewsletter && (
         <div style={{ backgroundColor: newsletterBackgroundColor, padding: '48px 24px' }}>
           <div style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center' }}>
             <h3 style={{ color: textColor, fontSize: '1.4rem', fontWeight: 700, marginBottom: 8 }}>

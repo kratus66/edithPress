@@ -1,5 +1,6 @@
 import React from 'react'
 import type { Fields } from '@measured/puck'
+import { makeCollapsibleRadio, makeCollapsibleColor } from '@/lib/fieldHelpers'
 
 export interface Card {
   image: string
@@ -62,53 +63,33 @@ export const cardGridBlockFields: Fields<CardGridBlockProps> = {
     },
     getItemSummary: (item) => item.title || 'Tarjeta',
   },
-  columns: {
-    type: 'radio',
-    label: 'Columnas',
-    options: [
-      { label: '1 columna', value: 1 },
-      { label: '2 columnas', value: 2 },
-      { label: '3 columnas', value: 3 },
-    ],
-  },
-  gap: {
-    type: 'radio',
-    label: 'Separación entre tarjetas',
-    options: [
-      { label: 'Pequeña', value: 'sm' },
-      { label: 'Mediana', value: 'md' },
-      { label: 'Grande', value: 'lg' },
-    ],
-  },
-  showImage: {
-    type: 'radio',
-    label: 'Mostrar imagen',
-    options: [
-      { label: 'Sí', value: true },
-      { label: 'No', value: false },
-    ],
-  },
-  cardBackgroundColor: { type: 'text', label: 'Color de fondo de tarjeta (hex)' },
-  accentColor: { type: 'text', label: 'Color de acento / enlace (hex)' },
-  borderRadius: {
-    type: 'radio',
-    label: 'Bordes redondeados',
-    options: [
-      { label: 'Sin redondeo', value: 'none' },
-      { label: 'Pequeño', value: 'sm' },
-      { label: 'Mediano', value: 'md' },
-      { label: 'Grande', value: 'lg' },
-    ],
-  },
-  padding: {
-    type: 'radio',
-    label: 'Espaciado interno de la sección',
-    options: [
-      { label: 'Pequeño', value: 'sm' },
-      { label: 'Mediano', value: 'md' },
-      { label: 'Grande', value: 'lg' },
-    ],
-  },
+  columns: makeCollapsibleRadio('Columnas', [
+    { label: '1 columna', value: '1' },
+    { label: '2 columnas', value: '2' },
+    { label: '3 columnas', value: '3' },
+  ]) as Fields<CardGridBlockProps>['columns'],
+  gap: makeCollapsibleRadio('Separación entre tarjetas', [
+    { label: 'Pequeña', value: 'sm' },
+    { label: 'Mediana', value: 'md' },
+    { label: 'Grande', value: 'lg' },
+  ]) as Fields<CardGridBlockProps>['gap'],
+  showImage: makeCollapsibleRadio('Mostrar imagen', [
+    { label: 'Sí', value: 'true' },
+    { label: 'No', value: 'false' },
+  ]) as Fields<CardGridBlockProps>['showImage'],
+  cardBackgroundColor: makeCollapsibleColor('Color de tarjeta') as Fields<CardGridBlockProps>['cardBackgroundColor'],
+  accentColor: makeCollapsibleColor('Color de acento') as Fields<CardGridBlockProps>['accentColor'],
+  borderRadius: makeCollapsibleRadio('Bordes redondeados', [
+    { label: 'Sin redondeo', value: 'none' },
+    { label: 'Pequeño', value: 'sm' },
+    { label: 'Mediano', value: 'md' },
+    { label: 'Grande', value: 'lg' },
+  ]) as Fields<CardGridBlockProps>['borderRadius'],
+  padding: makeCollapsibleRadio('Espaciado de sección', [
+    { label: 'Pequeño', value: 'sm' },
+    { label: 'Mediano', value: 'md' },
+    { label: 'Grande', value: 'lg' },
+  ]) as Fields<CardGridBlockProps>['padding'],
 }
 
 export const cardGridBlockDefaultProps: CardGridBlockProps = {
@@ -158,6 +139,7 @@ export function CardGridBlock({
   padding,
 }: CardGridBlockProps) {
   const radius = borderRadiusMap[borderRadius]
+  const showImageVal = showImage !== false && (showImage as unknown) !== 'false'
 
   return (
     <div style={{ padding: `${paddingMap[padding]} 40px` }}>
@@ -193,7 +175,7 @@ export function CardGridBlock({
               ;(e.currentTarget as HTMLElement).style.transform = 'translateY(0)'
             }}
           >
-            {showImage && card.image && (
+            {showImageVal && card.image && (
               <img
                 src={card.image}
                 alt={card.imageAlt}

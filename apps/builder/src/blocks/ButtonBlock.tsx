@@ -1,5 +1,6 @@
 import React from 'react'
 import type { Fields } from '@measured/puck'
+import { makeCollapsibleRadio, makeCollapsibleColor } from '@/lib/fieldHelpers'
 
 export interface ButtonBlockProps {
   text: string
@@ -19,34 +20,22 @@ const sizeMap: Record<ButtonBlockProps['size'], { padding: string; fontSize: str
 export const buttonBlockFields: Fields<ButtonBlockProps> = {
   text: { type: 'text', label: 'Texto del botón' },
   url: { type: 'text', label: 'URL de destino' },
-  variant: {
-    type: 'radio',
-    label: 'Estilo',
-    options: [
-      { label: 'Primario', value: 'primary' },
-      { label: 'Secundario', value: 'secondary' },
-      { label: 'Contorno', value: 'outline' },
-    ],
-  },
-  size: {
-    type: 'radio',
-    label: 'Tamaño',
-    options: [
-      { label: 'Pequeño', value: 'sm' },
-      { label: 'Mediano', value: 'md' },
-      { label: 'Grande', value: 'lg' },
-    ],
-  },
-  align: {
-    type: 'radio',
-    label: 'Alineación',
-    options: [
-      { label: 'Izquierda', value: 'left' },
-      { label: 'Centro', value: 'center' },
-      { label: 'Derecha', value: 'right' },
-    ],
-  },
-  primaryColor: { type: 'text', label: 'Color principal (hex)' },
+  variant: makeCollapsibleRadio('Estilo', [
+    { label: 'Primario', value: 'primary' },
+    { label: 'Secundario', value: 'secondary' },
+    { label: 'Contorno', value: 'outline' },
+  ]) as Fields<ButtonBlockProps>['variant'],
+  size: makeCollapsibleRadio('Tamaño', [
+    { label: 'Pequeño', value: 'sm' },
+    { label: 'Mediano', value: 'md' },
+    { label: 'Grande', value: 'lg' },
+  ]) as Fields<ButtonBlockProps>['size'],
+  align: makeCollapsibleRadio('Alineación', [
+    { label: 'Izquierda', value: 'left' },
+    { label: 'Centro', value: 'center' },
+    { label: 'Derecha', value: 'right' },
+  ]) as Fields<ButtonBlockProps>['align'],
+  primaryColor: makeCollapsibleColor('Color principal') as Fields<ButtonBlockProps>['primaryColor'],
 }
 
 export const buttonBlockDefaultProps: ButtonBlockProps = {

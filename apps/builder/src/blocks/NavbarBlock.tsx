@@ -2,6 +2,7 @@ import React from 'react'
 import type { Fields } from '@measured/puck'
 import { ColorPickerField } from '@/components/ColorPickerField'
 import { FontFamilyField } from '@/components/FontFamilyField'
+import { makeCollapsibleRadio, makeCollapsibleColor } from '@/lib/fieldHelpers'
 
 export interface LogoLine {
   text: string
@@ -143,60 +144,36 @@ export const navbarBlockFields: Fields<NavbarBlockProps> = {
     defaultItemProps: { label: 'Nuevo enlace', url: '#' },
     getItemSummary: (item: { label?: string }) => (item.label as string) || 'Enlace',
   },
-  backgroundColor: { type: 'text', label: 'Color de fondo (hex)' },
-  textColor: { type: 'text', label: 'Color del texto (hex)' },
-  accentColor: { type: 'text', label: 'Color de acento (hex)' },
-  layout: {
-    type: 'radio',
-    label: 'Disposición',
-    options: [
-      { label: 'Logo izq. · Links izq.', value: 'logo-left' },
-      { label: 'Logo izq. · Links centrados', value: 'logo-left-links-center' },
-      { label: 'Logo centrado', value: 'logo-center' },
-    ],
-  },
-  navFontWeight: {
-    type: 'radio',
-    label: 'Peso tipográfico de los links',
-    options: [
-      { label: 'Ligero', value: 'light' },
-      { label: 'Normal', value: 'regular' },
-      { label: 'Medio', value: 'medium' },
-    ],
-  },
-  borderStyle: {
-    type: 'radio',
-    label: 'Separador inferior',
-    options: [
-      { label: 'Sombra', value: 'shadow' },
-      { label: 'Línea fina', value: 'border' },
-      { label: 'Ninguno', value: 'none' },
-    ],
-  },
-  sticky: {
-    type: 'radio',
-    label: 'Posición',
-    options: [
-      { label: 'Fija al scroll', value: true as unknown as string },
-      { label: 'Normal', value: false as unknown as string },
-    ],
-  },
-  showSearch: {
-    type: 'radio',
-    label: 'Mostrar buscador',
-    options: [
-      { label: 'Sí', value: true as unknown as string },
-      { label: 'No', value: false as unknown as string },
-    ],
-  },
-  showCart: {
-    type: 'radio',
-    label: 'Mostrar carrito',
-    options: [
-      { label: 'Sí', value: true as unknown as string },
-      { label: 'No', value: false as unknown as string },
-    ],
-  },
+  backgroundColor: makeCollapsibleColor('Color de fondo') as Fields<NavbarBlockProps>['backgroundColor'],
+  textColor: makeCollapsibleColor('Color del texto') as Fields<NavbarBlockProps>['textColor'],
+  accentColor: makeCollapsibleColor('Color de acento') as Fields<NavbarBlockProps>['accentColor'],
+  layout: makeCollapsibleRadio('Disposición', [
+    { label: 'Logo izq. · Links izq.', value: 'logo-left' },
+    { label: 'Logo izq. · Links centrados', value: 'logo-left-links-center' },
+    { label: 'Logo centrado', value: 'logo-center' },
+  ]) as Fields<NavbarBlockProps>['layout'],
+  navFontWeight: makeCollapsibleRadio('Peso de los links', [
+    { label: 'Ligero', value: 'light' },
+    { label: 'Normal', value: 'regular' },
+    { label: 'Medio', value: 'medium' },
+  ]) as Fields<NavbarBlockProps>['navFontWeight'],
+  borderStyle: makeCollapsibleRadio('Separador inferior', [
+    { label: 'Sombra', value: 'shadow' },
+    { label: 'Línea fina', value: 'border' },
+    { label: 'Ninguno', value: 'none' },
+  ]) as Fields<NavbarBlockProps>['borderStyle'],
+  sticky: makeCollapsibleRadio('Posición', [
+    { label: 'Fija al scroll', value: 'true' },
+    { label: 'Normal', value: 'false' },
+  ]) as Fields<NavbarBlockProps>['sticky'],
+  showSearch: makeCollapsibleRadio('Mostrar buscador', [
+    { label: 'Sí', value: 'true' },
+    { label: 'No', value: 'false' },
+  ]) as Fields<NavbarBlockProps>['showSearch'],
+  showCart: makeCollapsibleRadio('Mostrar carrito', [
+    { label: 'Sí', value: 'true' },
+    { label: 'No', value: 'false' },
+  ]) as Fields<NavbarBlockProps>['showCart'],
 }
 
 export const navbarBlockDefaultProps: NavbarBlockProps = {
@@ -229,6 +206,10 @@ function resolveLineColor(color: string, accentColor: string, textColor: string)
   return color                                   // hex o cualquier valor CSS válido
 }
 
+function isTruthy(v: unknown): boolean {
+  return v !== false && v !== 'false' && Boolean(v)
+}
+
 export function NavbarBlock({
   logoText,
   logoLines,
@@ -244,11 +225,15 @@ export function NavbarBlock({
   navFontWeight,
   borderStyle,
 }: NavbarBlockProps) {
+  const isSticky = isTruthy(sticky)
+  const hasSearch = isTruthy(showSearch)
+  const hasCart = isTruthy(showCart)
+
   const navStyle: React.CSSProperties = {
     backgroundColor,
     color: textColor,
-    position: sticky ? 'sticky' : 'relative',
-    top: sticky ? 0 : undefined,
+    position: isSticky ? 'sticky' : 'relative',
+    top: isSticky ? 0 : undefined,
     zIndex: 50,
     width: '100%',
     boxShadow: borderStyle === 'shadow' ? '0 1px 8px rgba(0,0,0,.08)' : 'none',
@@ -321,7 +306,7 @@ export function NavbarBlock({
 
   const Actions = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-      {showSearch && (
+      {hasSearch && (
         <button
           type="button"
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: textColor, padding: 8, borderRadius: 6, display: 'flex' }}
@@ -332,7 +317,7 @@ export function NavbarBlock({
           </svg>
         </button>
       )}
-      {showCart && (
+      {hasCart && (
         <button
           type="button"
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: textColor, padding: 8, borderRadius: 6, display: 'flex', position: 'relative' }}

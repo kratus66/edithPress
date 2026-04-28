@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react'
 import type { Fields } from '@measured/puck'
+import { makeCollapsibleRadio } from '@/lib/fieldHelpers'
 
 export interface GalleryImage {
   src: string
@@ -49,43 +50,27 @@ export const galleryBlockFields: Fields<GalleryBlockProps> = {
     },
     getItemSummary: (item) => item.alt || 'Imagen',
   },
-  columns: {
-    type: 'radio',
-    label: 'Columnas',
-    options: [
-      { label: '2 columnas', value: 2 },
-      { label: '3 columnas', value: 3 },
-      { label: '4 columnas', value: 4 },
-    ],
-  },
-  gap: {
-    type: 'radio',
-    label: 'Separación entre imágenes',
-    options: [
-      { label: 'Pequeña', value: 'sm' },
-      { label: 'Mediana', value: 'md' },
-      { label: 'Grande', value: 'lg' },
-    ],
-  },
-  borderRadius: {
-    type: 'radio',
-    label: 'Bordes redondeados',
-    options: [
-      { label: 'Sin redondeo', value: 'none' },
-      { label: 'Pequeño', value: 'sm' },
-      { label: 'Mediano', value: 'md' },
-      { label: 'Grande', value: 'lg' },
-    ],
-  },
-  padding: {
-    type: 'radio',
-    label: 'Espaciado interno',
-    options: [
-      { label: 'Pequeño', value: 'sm' },
-      { label: 'Mediano', value: 'md' },
-      { label: 'Grande', value: 'lg' },
-    ],
-  },
+  columns: makeCollapsibleRadio('Columnas', [
+    { label: '2 columnas', value: '2' },
+    { label: '3 columnas', value: '3' },
+    { label: '4 columnas', value: '4' },
+  ]) as Fields<GalleryBlockProps>['columns'],
+  gap: makeCollapsibleRadio('Separación entre imágenes', [
+    { label: 'Pequeña', value: 'sm' },
+    { label: 'Mediana', value: 'md' },
+    { label: 'Grande', value: 'lg' },
+  ]) as Fields<GalleryBlockProps>['gap'],
+  borderRadius: makeCollapsibleRadio('Bordes redondeados', [
+    { label: 'Sin redondeo', value: 'none' },
+    { label: 'Pequeño', value: 'sm' },
+    { label: 'Mediano', value: 'md' },
+    { label: 'Grande', value: 'lg' },
+  ]) as Fields<GalleryBlockProps>['borderRadius'],
+  padding: makeCollapsibleRadio('Espaciado interno', [
+    { label: 'Pequeño', value: 'sm' },
+    { label: 'Mediano', value: 'md' },
+    { label: 'Grande', value: 'lg' },
+  ]) as Fields<GalleryBlockProps>['padding'],
 }
 
 export const galleryBlockDefaultProps: GalleryBlockProps = {

@@ -12,7 +12,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-edithpress}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword123}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infrastructure/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
