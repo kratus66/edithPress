@@ -16,6 +16,7 @@ import { NewsletterBlock, type NewsletterBlockProps } from './blocks/NewsletterB
 import { CategoryGridBlock, type CategoryGridBlockProps } from './blocks/CategoryGridBlock'
 import { SplitContentBlock, type SplitContentBlockProps } from './blocks/SplitContentBlock'
 import { FooterBlock, type FooterBlockProps } from './blocks/FooterBlock'
+import { PayButtonBlock, type PayButtonBlockProps } from './blocks/PayButtonBlock'
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
@@ -44,6 +45,7 @@ export type Block =
   | { type: 'CategoryGridBlock'; props: CategoryGridBlockProps }
   | { type: 'SplitContentBlock'; props: SplitContentBlockProps }
   | { type: 'FooterBlock'; props: Omit<FooterBlockProps, 'siteId'> }
+  | { type: 'PayButtonBlock'; props: PayButtonBlockProps }
 
 // ── Switch tipado tipo → componente ───────────────────────────────────────────
 
@@ -104,6 +106,9 @@ function renderBlock(block: Block, index: number, siteId?: string): React.ReactN
 
     case 'FooterBlock':
       return <FooterBlock key={index} {...block.props} siteId={siteId} />
+
+    case 'PayButtonBlock':
+      return <PayButtonBlock key={index} {...block.props} />
 
     default: {
       // TypeScript debería prevenir esta rama con exhaustive check,

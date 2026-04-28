@@ -95,7 +95,7 @@ export function HeroBlock({
       style={{
         backgroundColor,
         color: textColor,
-        padding: `${padding} 40px`,
+        padding: `${padding} clamp(16px, 5vw, 40px)`,
         textAlign,
         fontFamily,
         position: 'relative',

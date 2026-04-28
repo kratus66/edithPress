@@ -2,13 +2,13 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Button, Badge, Card, Alert } from '@edithpress/ui'
+import { Button, Badge, Card, Alert, Modal, ModalBody, ModalFooter } from '@edithpress/ui'
 import { useSites } from '@/hooks/useSites'
 import { getApiErrorMessage } from '@/lib/api-client'
 
 function SiteCard({ id, name, description, isPublished, updatedAt, onDelete, onPublish }: {
   id: string; name: string; description?: string; isPublished: boolean
-  updatedAt: string; onDelete: () => void; onPublish: () => void
+  updatedAt: string; onDelete: (name: string) => void; onPublish: () => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const date = new Date(updatedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -66,7 +66,7 @@ function SiteCard({ id, name, description, isPublished, updatedAt, onDelete, onP
               <button
                 type="button"
                 className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                onClick={() => { onDelete(); setMenuOpen(false) }}
+                onClick={() => { onDelete(name); setMenuOpen(false) }}
               >
                 Eliminar sitio
               </button>
@@ -81,13 +81,24 @@ function SiteCard({ id, name, description, isPublished, updatedAt, onDelete, onP
 export default function SitesPage() {
   const { sites, isLoading, error, deleteSite, publishSite } = useSites()
   const [actionError, setActionError] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  async function handleDelete(id: string) {
-    if (!confirm('¿Seguro que quieres eliminar este sitio? Esta acción no se puede deshacer.')) return
+  async function handleDelete(id: string, name: string) {
+    setDeleteTarget({ id, name })
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    setIsDeleting(true)
     try {
-      await deleteSite(id)
+      await deleteSite(deleteTarget.id)
+      setDeleteTarget(null)
     } catch (err) {
       setActionError(getApiErrorMessage(err, 'No se pudo eliminar el sitio.'))
+      setDeleteTarget(null)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -111,6 +122,29 @@ export default function SitesPage() {
       {actionError && <Alert variant="error" onDismiss={() => setActionError(null)}>{actionError}</Alert>}
       {error && <Alert variant="error">{error}</Alert>}
 
+      {/* Modal de confirmación de eliminación de sitio */}
+      <Modal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Eliminar sitio"
+      >
+        <ModalBody>
+          <p className="text-sm text-gray-600">
+            ¿Seguro que quieres eliminar{' '}
+            <span className="font-semibold text-gray-900">{deleteTarget?.name}</span>?
+            Esta acción no se puede deshacer y eliminará todas las páginas del sitio.
+          </p>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={isDeleting}>
+            Cancelar
+          </Button>
+          <Button variant="destructive" onClick={confirmDelete} loading={isDeleting}>
+            Eliminar sitio
+          </Button>
+        </ModalFooter>
+      </Modal>
+
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
@@ -132,7 +166,7 @@ export default function SitesPage() {
             <SiteCard
               key={site.id}
               {...site}
-              onDelete={() => handleDelete(site.id)}
+              onDelete={(siteName) => handleDelete(site.id, siteName)}
               onPublish={() => handlePublish(site.id)}
             />
           ))}

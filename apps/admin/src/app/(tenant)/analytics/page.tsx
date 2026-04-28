@@ -241,8 +241,8 @@ export default function AnalyticsPage() {
                 <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
@@ -264,11 +264,11 @@ export default function AnalyticsPage() {
                     type="monotone"
                     dataKey={series}
                     name={series === 'visits' ? 'visitas' : 'páginas vistas'}
-                    stroke="#6366f1"
+                    stroke="#2563eb"
                     strokeWidth={2}
                     fill="url(#colorVisits)"
                     dot={false}
-                    activeDot={{ r: 4, strokeWidth: 0 }}
+                    activeDot={{ r: 4, strokeWidth: 0, fill: '#2563eb' }}
                   />
                 </AreaChart>
               </ResponsiveContainer>

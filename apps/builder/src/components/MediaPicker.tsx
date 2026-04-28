@@ -208,7 +208,7 @@ function MediaModal({ isOpen, onClose, onSelect }: MediaModalProps) {
                 alignItems: 'center',
                 justifyContent: 'center',
                 height: '200px',
-                color: '#ef4444',
+                color: '#dc2626',
                 fontSize: '0.9375rem',
               }}
             >

@@ -19,6 +19,7 @@ import { NewsletterBlock, newsletterBlockFields, newsletterBlockDefaultProps } f
 import { CategoryGridBlock, categoryGridBlockFields, categoryGridBlockDefaultProps } from '@/blocks/CategoryGridBlock'
 import { SplitContentBlock, splitContentBlockFields, splitContentBlockDefaultProps } from '@/blocks/SplitContentBlock'
 import { FooterBlock, footerBlockFields, footerBlockDefaultProps } from '@/blocks/FooterBlock'
+import { PayButtonBlock, payButtonBlockFields, payButtonBlockDefaultProps } from '@/blocks/PayButtonBlock'
 import { MediaPicker } from '@/components/MediaPicker'
 import { ColorPickerField } from '@/components/ColorPickerField'
 import { FontFamilyField } from '@/components/FontFamilyField'
@@ -56,6 +57,8 @@ const fontFamilyField = (label: string) => ({
  *           HeroBlock v1.1 (+eyebrowText, cta2, overlayOpacity)
  *           ProductGridBlock v1.1 (+eyebrowText, viewAllText, categoryPosition, showCta)
  * FASE 3.3: root config (estilos globales), NavbarBlock logo multi-línea
+ * FASE 3.4: ProductGridBlock v1.2 (+whatsappPhone, ctaType por producto)
+ *           PayButtonBlock — enlace de pago Wompi/PayU/MercadoPago/Nequi
  */
 export const puckConfig: Config = {
   root: {
@@ -405,6 +408,12 @@ export const puckConfig: Config = {
       },
       defaultProps: footerBlockDefaultProps,
       render: FooterBlock,
+    },
+    PayButtonBlock: {
+      label: 'Botón de pago (Wompi / PayU / Nequi)',
+      fields: payButtonBlockFields,
+      defaultProps: payButtonBlockDefaultProps,
+      render: PayButtonBlock,
     },
   },
 }

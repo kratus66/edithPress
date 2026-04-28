@@ -117,7 +117,7 @@ export default function RegisterPage() {
             </p>
           )}
           {errors.tenantSlug && (
-            <p className="text-xs text-red-600">{errors.tenantSlug.message}</p>
+            <p className="text-xs text-error">{errors.tenantSlug.message}</p>
           )}
         </div>
 

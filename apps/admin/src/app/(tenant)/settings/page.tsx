@@ -138,7 +138,7 @@ function DangerZone() {
         </Button>
       ) : (
         <div className="flex items-center gap-3">
-          <p className="text-sm text-red-600 font-medium">¿Estás seguro? Esta acción no se puede deshacer.</p>
+          <p className="text-sm text-error font-medium">¿Estás seguro? Esta acción no se puede deshacer.</p>
           <Button variant="destructive" onClick={() => api.delete('/users/me').then(() => { window.location.href = '/login' })}>
             Sí, eliminar
           </Button>

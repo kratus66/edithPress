@@ -83,8 +83,9 @@ export function ColorPickerField({ value, onChange }: ColorPickerFieldProps) {
           type="button"
           onClick={openDropdown}
           title="Abrir paleta de colores"
+          aria-label={`Color seleccionado: ${value}. Clic para abrir paleta`}
           style={{
-            width: 32, height: 32, flexShrink: 0,
+            width: 36, height: 36, flexShrink: 0,
             borderRadius: 6, cursor: 'pointer',
             background: safeColor,
             border: '2px solid #e2e8f0',
@@ -109,8 +110,9 @@ export function ColorPickerField({ value, onChange }: ColorPickerFieldProps) {
           type="button"
           onClick={openNativePicker}
           title="Abrir selector de color del sistema"
+          aria-label="Abrir selector de color del sistema"
           style={{
-            width: 32, height: 32, flexShrink: 0,
+            width: 36, height: 36, flexShrink: 0,
             borderRadius: 6, cursor: 'pointer',
             background: safeColor,
             border: '2px solid #e2e8f0',
@@ -154,21 +156,24 @@ export function ColorPickerField({ value, onChange }: ColorPickerFieldProps) {
             zIndex: 99999,
             background: '#fff', borderRadius: 10, padding: 10,
             boxShadow: '0 8px 32px rgba(0,0,0,.18)',
-            border: '1px solid #e2e8f0', width: 218,
+            border: '1px solid #e2e8f0', width: 250,
           }}
         >
           <p style={{ margin: '0 0 8px', fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em' }}>
             Paleta de colores
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 3 }}>
+          {/* Regla de focus-visible para swatches accesibles */}
+          <style>{`.ep-swatch:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }`}</style>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 3 }}>
             {PRESETS.map(color => (
               <button
                 key={color}
                 type="button"
+                className="ep-swatch"
                 onClick={() => { onChange(color); setOpen(false) }}
                 title={color}
                 style={{
-                  width: 18, height: 18, borderRadius: 3, padding: 0,
+                  width: 28, height: 28, borderRadius: 3, padding: 0,
                   background: color, cursor: 'pointer',
                   border: value === color ? '2px solid #2563eb' : '1px solid #e2e8f0',
                   boxSizing: 'border-box',

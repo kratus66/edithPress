@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Header } from '@/components/layout/Header'
 import { MobileNav } from '@/components/layout/MobileNav'
+import { useAuth } from '@/contexts/AuthContext'
 
 /**
  * Layout del área autenticada del tenant (dashboard, sites, media, etc.)
@@ -14,11 +15,14 @@ import { MobileNav } from '@/components/layout/MobileNav'
  * Estructura mobile:
  *   [Header sticky con hamburger] + [contenido]
  *   [MobileNav drawer — overlay]
- *
- * TODO FASE 1: pasar userEmail y userName reales desde la sesión (next-auth).
  */
 export default function TenantLayout({ children }: { children: React.ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const { user } = useAuth()
+
+  const userName = user
+    ? [user.firstName, user.lastName].filter(Boolean).join(' ') || undefined
+    : undefined
 
   return (
     <div className="min-h-screen bg-bg-secondary">
@@ -35,9 +39,8 @@ export default function TenantLayout({ children }: { children: React.ReactNode }
       <div className="md:pl-60 flex flex-col min-h-screen">
         <Header
           onMenuOpen={() => setMobileNavOpen(true)}
-          // TODO: inyectar datos reales del usuario desde sesión
-          userEmail="usuario@ejemplo.com"
-          userName="Usuario"
+          userEmail={user?.email}
+          userName={userName}
         />
 
         <main className="flex-1 p-4 md:p-6">

@@ -87,7 +87,7 @@ function SaveIndicator({ status, lastSaved, onRetry }: { status: SaveStatus; las
   if (status === 'error') return (
     <button onClick={onRetry} style={{
       display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
-      color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer',
+      color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer',
       textDecoration: 'underline', padding: 0,
     }}>
       Error — Reintentar

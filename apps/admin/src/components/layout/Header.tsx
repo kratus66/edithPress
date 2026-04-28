@@ -165,7 +165,8 @@ export function Header({ onMenuOpen, userEmail, userName }: HeaderProps) {
     <header
       className={cn(
         'sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-gray-200 bg-white px-4 md:px-6',
-        'md:ml-60', // empuja el header para que no se solape con el Sidebar fijo
+        // El layout padre ya aplica md:pl-60 para desplazar el contenido tras el Sidebar.
+        // No se añade ml-60 aquí para evitar doble offset a 768px (el breakpoint md).
       )}
     >
       {/* ── Mobile: botón hamburger + logo ── */}
@@ -200,7 +201,7 @@ export function Header({ onMenuOpen, userEmail, userName }: HeaderProps) {
       </div>
 
       {/* ── Desktop: título de la página ── */}
-      <h1 className="hidden md:block text-lg font-semibold text-gray-900 flex-1">
+      <h1 className="hidden md:block text-lg font-semibold text-gray-900 flex-1 min-w-0 truncate">
         {pageTitle}
       </h1>
 

@@ -31,26 +31,24 @@ describe('HeroBlock', () => {
     expect(screen.getByText('ARTESANÍAS ÚNICAS')).toBeTruthy()
   })
 
-  it('should NOT render the second CTA when cta2Text is empty string (default)', () => {
-    // Default cta2Text is '' — no second CTA anchor should be in the DOM
-    render(<HeroBlock {...heroBlockDefaultProps} cta2Text="" />)
-    // The primary CTA "Contáctanos" should exist
-    expect(screen.getByText('Contáctanos')).toBeTruthy()
-    // No second CTA text should be present
-    // We verify by querying a known second CTA text — must return null
-    expect(screen.queryByText('Saber más')).toBeNull()
+  it('should NOT render buttons when buttons array is empty', () => {
+    render(<HeroBlock {...heroBlockDefaultProps} buttons={[]} />)
+    expect(screen.queryByRole('link')).toBeNull()
   })
 
-  it('should render the second CTA when cta2Text has a value', () => {
+  it('should render buttons from the buttons array', () => {
     render(
       <HeroBlock
         {...heroBlockDefaultProps}
-        cta2Text="Saber más"
-        cta2Url="/about"
-        cta2Variant="outline"
+        buttons={[
+          { text: 'Contáctanos', url: '/contacto', variant: 'solid', bgColor: '#fff', textColor: '#000' },
+          { text: 'Saber más', url: '/about', variant: 'outline', bgColor: 'transparent', textColor: '#fff' },
+        ]}
       />
     )
+    const cta1 = screen.getByText('Contáctanos')
     const cta2 = screen.getByText('Saber más')
+    expect(cta1).toBeTruthy()
     expect(cta2).toBeTruthy()
     expect(cta2.getAttribute('href')).toBe('/about')
   })

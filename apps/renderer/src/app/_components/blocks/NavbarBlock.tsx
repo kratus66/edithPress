@@ -1,4 +1,5 @@
 import React from 'react'
+import { NavbarMobile } from './NavbarMobile'
 
 function sanitizeUrl(url: string): string {
   if (!url) return '#'
@@ -88,6 +89,8 @@ export function NavbarBlock({
     position: sticky ? 'sticky' : 'relative',
     top: sticky ? 0 : undefined,
     zIndex: 50,
+    // position:relative necesario para el menú mobile absoluto
+    // (sticky ya implica un contexto de posicionamiento)
     width: '100%',
     boxShadow: borderStyle === 'shadow' ? '0 1px 8px rgba(0,0,0,.08)' : 'none',
     borderBottom: borderStyle === 'border' ? `1px solid ${textColor}22` : 'none',
@@ -132,7 +135,7 @@ export function NavbarBlock({
   const linkWeight = NAV_FONT_WEIGHT_MAP[navFontWeight] ?? 500
 
   const NavLinks = (
-    <ul style={{ display: 'flex', gap: 4, listStyle: 'none', margin: 0, padding: 0, alignItems: 'center' }}>
+    <ul className="navbar-desktop-links" style={{ display: 'flex', gap: 4, listStyle: 'none', margin: 0, padding: 0, alignItems: 'center' }}>
       {navLinks.map((link) => (
         <li key={link.url}>
           <a
@@ -200,6 +203,12 @@ export function NavbarBlock({
             {Logo}
             <div style={{ flex: 1, paddingLeft: 32 }}>{NavLinks}</div>
             {Actions}
+            <NavbarMobile
+              navLinks={navLinks}
+              textColor={textColor}
+              backgroundColor={backgroundColor}
+              accentColor={accentColor}
+            />
           </>
         )}
 
@@ -207,7 +216,15 @@ export function NavbarBlock({
           <>
             <div style={{ flex: 1 }}>{Logo}</div>
             <div style={{ display: 'flex', justifyContent: 'center' }}>{NavLinks}</div>
-            <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>{Actions}</div>
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+              {Actions}
+              <NavbarMobile
+                navLinks={navLinks}
+                textColor={textColor}
+                backgroundColor={backgroundColor}
+                accentColor={accentColor}
+              />
+            </div>
           </>
         )}
 
@@ -218,6 +235,12 @@ export function NavbarBlock({
             <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', gap: 8, alignItems: 'center' }}>
               {NavLinks}
               {Actions}
+              <NavbarMobile
+                navLinks={navLinks}
+                textColor={textColor}
+                backgroundColor={backgroundColor}
+                accentColor={accentColor}
+              />
             </div>
           </>
         )}

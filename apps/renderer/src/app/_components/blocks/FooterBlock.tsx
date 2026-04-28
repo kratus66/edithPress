@@ -92,8 +92,8 @@ export function FooterBlock({
           maxWidth: 1280,
           margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: `minmax(200px, 1fr) repeat(${columns.length}, 1fr)`,
-          gap: '40px 32px',
+          gridTemplateColumns: `repeat(auto-fit, minmax(160px, 1fr))`,
+          gap: '32px 24px',
         }}>
           {/* Brand column */}
           <div>

@@ -43,19 +43,61 @@ function slugify(value: string) {
 
 // ── Step indicator ─────────────────────────────────────────────────────────────
 
+const STEP_LABELS = ['Tu negocio', 'Tipo de sitio', 'Tu sitio']
+
 function StepIndicator({ current, total }: { current: number; total: number }) {
   return (
-    <div className="flex items-center gap-2 mb-8">
-      {Array.from({ length: total }).map((_, i) => (
-        <div
-          key={i}
-          className={`h-1.5 flex-1 rounded-full transition-colors ${
-            i < current ? 'bg-primary-600' : i === current ? 'bg-primary-300' : 'bg-gray-200'
-          }`}
-          aria-hidden="true"
-        />
-      ))}
-      <span className="text-xs text-gray-500 ml-1 shrink-0">{current + 1} / {total}</span>
+    <div className="mb-8" role="list" aria-label="Pasos del asistente de configuración">
+      {/* Barras de progreso */}
+      <div className="flex items-center gap-2 mb-3">
+        {Array.from({ length: total }).map((_, i) => (
+          <div
+            key={i}
+            className={`h-1.5 flex-1 rounded-full transition-colors ${
+              i < current ? 'bg-primary-600' : i === current ? 'bg-primary-300' : 'bg-gray-200'
+            }`}
+            aria-hidden="true"
+          />
+        ))}
+      </div>
+
+      {/* Etiquetas de pasos */}
+      <div className="flex items-start gap-2">
+        {Array.from({ length: total }).map((_, i) => {
+          const isDone = i < current
+          const isCurrent = i === current
+          return (
+            <div
+              key={i}
+              role="listitem"
+              aria-current={isCurrent ? 'step' : undefined}
+              className="flex-1 text-center"
+            >
+              <span
+                className={`text-xs font-medium transition-colors ${
+                  isCurrent
+                    ? 'text-primary-600'
+                    : isDone
+                      ? 'text-gray-400'
+                      : 'text-gray-300'
+                }`}
+              >
+                {isDone ? (
+                  // Ícono de completado para pasos anteriores
+                  <span className="inline-flex items-center justify-center gap-1">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    {STEP_LABELS[i]}
+                  </span>
+                ) : (
+                  STEP_LABELS[i]
+                )}
+              </span>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -159,7 +201,7 @@ export default function OnboardingPage() {
             <button
               type="button"
               onClick={() => setStep(0)}
-              className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              className="text-sm text-gray-500 hover:text-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 rounded-md px-2 py-1"
             >
               ← Atrás
             </button>

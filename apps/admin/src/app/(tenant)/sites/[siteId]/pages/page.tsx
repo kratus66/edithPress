@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button, Badge, Card, Alert } from '@edithpress/ui'
 import { api, getApiErrorMessage } from '@/lib/api-client'
+import { Breadcrumbs } from '@/components/common/Breadcrumbs'
 
 const BUILDER_BASE = process.env.NEXT_PUBLIC_BUILDER_URL ?? 'http://localhost:3002'
 function builderHref(siteId: string, pageId: string): string {
@@ -143,7 +144,7 @@ function PageRow({
       </div>
 
       {deleteError && (
-        <p className="text-xs text-red-600">{deleteError}</p>
+        <p className="text-xs text-error">{deleteError}</p>
       )}
     </div>
   )
@@ -182,6 +183,7 @@ export default function SitePagesPage({
   const { siteId } = params
 
   const [pages, setPages] = useState<SitePage[]>([])
+  const [siteName, setSiteName] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('ALL')
@@ -190,10 +192,13 @@ export default function SitePagesPage({
     setIsLoading(true)
     setError(null)
     try {
-      const { data } = await api.get<{ data: SitePage[] }>(`/sites/${siteId}/pages`)
-      setPages(data.data)
-    } catch (err) {
-      setError(getApiErrorMessage(err, 'No se pudieron cargar las páginas.'))
+      const [pagesRes, siteRes] = await Promise.allSettled([
+        api.get<{ data: SitePage[] }>(`/sites/${siteId}/pages`),
+        api.get<{ data: { name: string } }>(`/sites/${siteId}`),
+      ])
+      if (pagesRes.status === 'fulfilled') setPages(pagesRes.value.data.data)
+      else setError(getApiErrorMessage(pagesRes.reason, 'No se pudieron cargar las páginas.'))
+      if (siteRes.status === 'fulfilled') setSiteName(siteRes.value.data.data.name)
     } finally {
       setIsLoading(false)
     }
@@ -210,21 +215,18 @@ export default function SitePagesPage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href={`/sites/${siteId}`}>
-          <button
-            type="button"
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 rounded-md"
-            aria-label="Volver al sitio"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-            Sitio
-          </button>
-        </Link>
-        <h2 className="flex-1 text-xl font-semibold text-gray-900">Páginas</h2>
-        <Link href={`/sites/${siteId}/pages/new`}>
+      <div className="flex items-start gap-4">
+        <div className="flex-1 min-w-0 space-y-1">
+          <Breadcrumbs
+            items={[
+              { label: 'Sitios', href: '/sites' },
+              { label: siteName ?? siteId, href: `/sites/${siteId}` },
+              { label: 'Páginas' },
+            ]}
+          />
+          <h2 className="text-xl font-semibold text-gray-900">Páginas</h2>
+        </div>
+        <Link href={`/sites/${siteId}/pages/new`} className="shrink-0">
           <Button size="sm">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mr-1.5">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />

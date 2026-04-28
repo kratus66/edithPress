@@ -2,16 +2,21 @@ import React from 'react'
 import type { Fields } from '@measured/puck'
 import { ColorPickerField } from '@/components/ColorPickerField'
 
+export interface HeroButton {
+  text: string
+  url: string
+  variant: 'solid' | 'outline' | 'ghost'
+  bgColor: string
+  textColor: string
+}
+
 export interface HeroBlockProps {
   title: string
   subtitle: string
   backgroundColor: string
   backgroundImage: string
   textColor: string
-  ctaText: string
-  ctaUrl: string
-  ctaColor: string
-  ctaTextColor: string
+  buttons: HeroButton[]
   textAlign: 'left' | 'center' | 'right'
   paddingY: 'sm' | 'md' | 'lg' | 'xl'
   fontFamily: string
@@ -19,11 +24,6 @@ export interface HeroBlockProps {
   titleFontWeight: 'light' | 'regular' | 'medium' | 'semibold' | 'bold'
   subtitleFontSize: 'sm' | 'md' | 'lg' | 'xl'
   eyebrowText: string
-  cta2Text: string
-  cta2Url: string
-  cta2Variant: 'solid' | 'outline' | 'ghost'
-  cta2Color: string
-  cta2TextColor: string
   overlayColor: string
   overlayOpacity: number
 }
@@ -126,49 +126,45 @@ export const heroBlockFields: Fields<HeroBlockProps> = {
   },
   fontFamily: { type: 'text', label: 'Fuente' },
 
-  // ── Botón primario ─────────────────────────────────────────────────────────
-  ctaText: { type: 'text', label: 'Texto del botón principal' },
-  ctaUrl: { type: 'text', label: 'URL del botón principal' },
-  ctaColor: {
-    type: 'custom',
-    label: 'Color de fondo (botón principal)',
-    render: ({ value, onChange }: { value: unknown; onChange: (v: string) => void }) => (
-      <ColorPickerField value={value as string} onChange={onChange} />
-    ),
-  },
-  ctaTextColor: {
-    type: 'custom',
-    label: 'Color del texto (botón principal)',
-    render: ({ value, onChange }: { value: unknown; onChange: (v: string) => void }) => (
-      <ColorPickerField value={value as string} onChange={onChange} />
-    ),
-  },
-
-  // ── Botón secundario ───────────────────────────────────────────────────────
-  cta2Text: { type: 'text', label: 'Texto del segundo botón (vacío = oculto)' },
-  cta2Url: { type: 'text', label: 'URL del segundo botón' },
-  cta2Variant: {
-    type: 'radio',
-    label: 'Estilo del segundo botón',
-    options: [
-      { label: 'Sólido', value: 'solid' },
-      { label: 'Contorno', value: 'outline' },
-      { label: 'Ghost', value: 'ghost' },
-    ],
-  },
-  cta2Color: {
-    type: 'custom',
-    label: 'Color de fondo (segundo botón)',
-    render: ({ value, onChange }: { value: unknown; onChange: (v: string) => void }) => (
-      <ColorPickerField value={value as string} onChange={onChange} />
-    ),
-  },
-  cta2TextColor: {
-    type: 'custom',
-    label: 'Color del texto (segundo botón)',
-    render: ({ value, onChange }: { value: unknown; onChange: (v: string) => void }) => (
-      <ColorPickerField value={value as string} onChange={onChange} />
-    ),
+  // ── Botones ────────────────────────────────────────────────────────────────
+  buttons: {
+    type: 'array',
+    label: 'Botones',
+    arrayFields: {
+      text: { type: 'text', label: 'Texto' },
+      url: { type: 'text', label: 'URL' },
+      variant: {
+        type: 'radio',
+        label: 'Estilo',
+        options: [
+          { label: 'Sólido', value: 'solid' },
+          { label: 'Contorno', value: 'outline' },
+          { label: 'Ghost', value: 'ghost' },
+        ],
+      },
+      bgColor: {
+        type: 'custom',
+        label: 'Color de fondo',
+        render: ({ value, onChange }: { value: unknown; onChange: (v: string) => void }) => (
+          <ColorPickerField value={value as string} onChange={onChange} />
+        ),
+      },
+      textColor: {
+        type: 'custom',
+        label: 'Color del texto',
+        render: ({ value, onChange }: { value: unknown; onChange: (v: string) => void }) => (
+          <ColorPickerField value={value as string} onChange={onChange} />
+        ),
+      },
+    },
+    defaultItemProps: {
+      text: 'Botón',
+      url: '#',
+      variant: 'solid',
+      bgColor: '#ffffff',
+      textColor: '#1a1a2e',
+    },
+    getItemSummary: (item: { text?: string }) => (item.text as string) || 'Botón',
   },
 
   // ── Fondo ──────────────────────────────────────────────────────────────────
@@ -219,10 +215,9 @@ export const heroBlockDefaultProps: HeroBlockProps = {
   backgroundColor: '#1a1a2e',
   backgroundImage: '',
   textColor: '#ffffff',
-  ctaText: 'Contáctanos',
-  ctaUrl: '/contacto',
-  ctaColor: '#ffffff',
-  ctaTextColor: '#1a1a2e',
+  buttons: [
+    { text: 'Contáctanos', url: '/contacto', variant: 'solid', bgColor: '#ffffff', textColor: '#1a1a2e' },
+  ],
   textAlign: 'center',
   paddingY: 'lg',
   fontFamily: 'inherit',
@@ -230,11 +225,6 @@ export const heroBlockDefaultProps: HeroBlockProps = {
   titleFontWeight: 'bold',
   subtitleFontSize: 'lg',
   eyebrowText: '',
-  cta2Text: '',
-  cta2Url: '#',
-  cta2Variant: 'outline',
-  cta2Color: 'transparent',
-  cta2TextColor: '#ffffff',
   overlayColor: '#000000',
   overlayOpacity: 0,
 }
@@ -245,10 +235,7 @@ export function HeroBlock({
   backgroundColor,
   backgroundImage,
   textColor,
-  ctaText,
-  ctaUrl,
-  ctaColor,
-  ctaTextColor,
+  buttons = [],
   textAlign,
   paddingY,
   fontFamily = 'inherit',
@@ -256,11 +243,6 @@ export function HeroBlock({
   titleFontWeight = 'bold',
   subtitleFontSize = 'lg',
   eyebrowText = '',
-  cta2Text = '',
-  cta2Url = '#',
-  cta2Variant = 'outline',
-  cta2Color = 'transparent',
-  cta2TextColor,
   overlayColor = '#000000',
   overlayOpacity = 0,
 }: HeroBlockProps) {
@@ -268,6 +250,7 @@ export function HeroBlock({
   const resolvedTitleSize = titleFontSizeMap[titleFontSize] ?? titleFontSizeMap.lg
   const resolvedSubtitleSize = subtitleFontSizeMap[subtitleFontSize] ?? subtitleFontSizeMap.lg
   const resolvedTitleWeight = titleWeightMap[titleFontWeight] ?? 700
+  const activeButtons = buttons.filter(b => b.text)
 
   const bgStyle: React.CSSProperties = backgroundImage
     ? {
@@ -282,11 +265,6 @@ export function HeroBlock({
   const overlayHex = overlayOpacity > 0
     ? `${overlayColor}${Math.round((overlayOpacity / 100) * 255).toString(16).padStart(2, '0')}`
     : null
-
-  // Estilo del botón 2 según variante + colores personalizados
-  const btn2BgColor = cta2Variant === 'solid' ? (cta2Color || textColor) : 'transparent'
-  const btn2Border = cta2Variant === 'outline' ? `2px solid ${cta2TextColor || textColor}` : 'none'
-  const btn2TextDecoration = cta2Variant === 'ghost' ? 'underline' : 'none'
 
   const justifyContent =
     textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start'
@@ -353,51 +331,37 @@ export function HeroBlock({
         </p>
 
         {/* Botones */}
-        <div style={{ display: 'flex', gap: 14, justifyContent, flexWrap: 'wrap' }}>
-          {ctaText && (
-            <a
-              href={ctaUrl}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                backgroundColor: ctaColor || textColor,
-                color: ctaTextColor || backgroundColor,
-                padding: '13px 28px',
-                borderRadius: '6px',
-                fontWeight: 600,
-                textDecoration: 'none',
-                fontSize: '0.95rem',
-                fontFamily,
-                letterSpacing: '0.01em',
-              }}
-            >
-              {ctaText}
-            </a>
-          )}
-          {cta2Text && (
-            <a
-              href={cta2Url}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                backgroundColor: btn2BgColor,
-                color: cta2TextColor || textColor,
-                padding: '13px 28px',
-                borderRadius: '6px',
-                fontWeight: 600,
-                fontSize: '0.95rem',
-                fontFamily,
-                border: btn2Border,
-                textDecoration: btn2TextDecoration,
-                letterSpacing: '0.01em',
-              }}
-            >
-              {cta2Text}
-            </a>
-          )}
-        </div>
+        {activeButtons.length > 0 && (
+          <div style={{ display: 'flex', gap: 14, justifyContent, flexWrap: 'wrap' }}>
+            {activeButtons.map((btn, i) => {
+              const isSolid = btn.variant === 'solid'
+              const isOutline = btn.variant === 'outline'
+              return (
+                <a
+                  key={i}
+                  href={btn.url || '#'}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    backgroundColor: isSolid ? (btn.bgColor || textColor) : 'transparent',
+                    color: btn.textColor || textColor,
+                    padding: '13px 28px',
+                    borderRadius: '6px',
+                    fontWeight: 600,
+                    fontSize: '0.95rem',
+                    fontFamily,
+                    border: isOutline ? `2px solid ${btn.textColor || textColor}` : 'none',
+                    textDecoration: btn.variant === 'ghost' ? 'underline' : 'none',
+                    letterSpacing: '0.01em',
+                  }}
+                >
+                  {btn.text}
+                </a>
+              )
+            })}
+          </div>
+        )}
       </div>
     </section>
   )

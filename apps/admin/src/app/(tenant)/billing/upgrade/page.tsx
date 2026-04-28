@@ -127,23 +127,55 @@ export default function UpgradePage() {
         <p className="text-sm text-gray-500">Cancela cuando quieras. Sin permanencia.</p>
 
         {/* Toggle mensual / anual */}
-        <div className="flex items-center justify-center gap-3">
-          <span className={`text-sm font-medium ${interval === 'monthly' ? 'text-gray-900' : 'text-gray-400'}`}>
-            Mensual
-          </span>
-          <Switch
-            checked={interval === 'yearly'}
-            onCheckedChange={(checked) => setInterval(checked ? 'yearly' : 'monthly')}
-            aria-label="Cambiar a facturacion anual"
-          />
-          <div className="flex items-center gap-2">
-            <span className={`text-sm font-medium ${interval === 'yearly' ? 'text-gray-900' : 'text-gray-400'}`}>
-              Anual
-            </span>
-            <Badge variant="success" className="text-xs font-semibold">
-              Ahorra 20%
-            </Badge>
+        <div className="space-y-2">
+          <div className="flex items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => setInterval('monthly')}
+              className={`text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 rounded-sm px-1 ${
+                interval === 'monthly' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'
+              }`}
+              aria-pressed={interval === 'monthly'}
+            >
+              Mensual
+            </button>
+
+            <Switch
+              checked={interval === 'yearly'}
+              onCheckedChange={(checked) => setInterval(checked ? 'yearly' : 'monthly')}
+              aria-label={
+                interval === 'yearly'
+                  ? 'Actualmente en facturación anual — cambiar a mensual'
+                  : 'Cambiar a facturación anual y ahorrar 20%'
+              }
+            />
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setInterval('yearly')}
+                className={`text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 rounded-sm px-1 ${
+                  interval === 'yearly' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'
+                }`}
+                aria-pressed={interval === 'yearly'}
+              >
+                Anual
+              </button>
+              <Badge
+                variant={interval === 'yearly' ? 'success' : 'default'}
+                className="text-xs font-semibold transition-colors"
+              >
+                Ahorra 20%
+              </Badge>
+            </div>
           </div>
+
+          {/* Nota contextual según selección */}
+          <p className="text-xs text-center text-gray-500 min-h-[1.25rem]">
+            {interval === 'yearly'
+              ? 'Facturado una vez al año — cancela cuando quieras'
+              : 'Paga mes a mes, sin compromiso'}
+          </p>
         </div>
       </div>
 

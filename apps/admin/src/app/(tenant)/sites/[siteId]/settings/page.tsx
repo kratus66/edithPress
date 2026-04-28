@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button, Input, Alert, Card, Modal, ModalBody, ModalFooter } from '@edithpress/ui'
 import { api, getApiErrorMessage } from '@/lib/api-client'
+import { Breadcrumbs } from '@/components/common/Breadcrumbs'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -402,6 +403,8 @@ export default function SiteSettingsPage({
   const watchedSeoTitle = watch('seoTitle')
   const watchedSeoDesc = watch('seoDescription')
 
+  const [siteName, setSiteName] = useState('')
+
   // Cargar configuracion existente
   useEffect(() => {
     api
@@ -418,6 +421,7 @@ export default function SiteSettingsPage({
         }
       }>(`/sites/${siteId}`)
       .then(({ data }) => {
+        setSiteName(data.data.name)
         reset({
           name: data.data.name,
           description: data.data.description ?? '',
@@ -453,20 +457,15 @@ export default function SiteSettingsPage({
   return (
     <div className="max-w-2xl space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href={`/sites/${siteId}`}>
-          <button
-            type="button"
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 rounded-md"
-            aria-label="Volver al sitio"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-            Sitio
-          </button>
-        </Link>
-        <h2 className="flex-1 text-xl font-semibold text-gray-900">Configuracion del sitio</h2>
+      <div className="space-y-1">
+        <Breadcrumbs
+          items={[
+            { label: 'Sitios', href: '/sites' },
+            { label: siteName || siteId, href: `/sites/${siteId}` },
+            { label: 'Configuración' },
+          ]}
+        />
+        <h2 className="text-xl font-semibold text-gray-900">Configuración del sitio</h2>
       </div>
 
       {/* Nav tabs */}
@@ -520,7 +519,7 @@ export default function SiteSettingsPage({
             />
             <div className="flex justify-between">
               {errors.description ? (
-                <p className="text-xs text-red-600">{errors.description.message}</p>
+                <p className="text-xs text-error">{errors.description.message}</p>
               ) : (
                 <span />
               )}
@@ -569,7 +568,7 @@ export default function SiteSettingsPage({
             />
             <div className="flex justify-between">
               {errors.seoDescription ? (
-                <p className="text-xs text-red-600">{errors.seoDescription.message}</p>
+                <p className="text-xs text-error">{errors.seoDescription.message}</p>
               ) : (
                 <span />
               )}
