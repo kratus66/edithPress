@@ -31,6 +31,7 @@ export interface NavbarBlockProps {
   showCart: boolean
   layout: 'logo-left' | 'logo-left-links-center' | 'logo-center'
   navFontWeight: 'light' | 'regular' | 'medium'
+  navFontFamily?: string
   borderStyle: 'shadow' | 'border' | 'none'
 }
 
@@ -81,6 +82,7 @@ export function NavbarBlock({
   showCart,
   layout,
   navFontWeight,
+  navFontFamily = '',
   borderStyle,
 }: NavbarBlockProps) {
   const navStyle: React.CSSProperties = {
@@ -135,7 +137,7 @@ export function NavbarBlock({
   const linkWeight = NAV_FONT_WEIGHT_MAP[navFontWeight] ?? 500
 
   const NavLinks = (
-    <ul className="navbar-desktop-links" style={{ display: 'flex', gap: 4, listStyle: 'none', margin: 0, padding: 0, alignItems: 'center' }}>
+    <ul className="navbar-desktop-links" style={{ display: 'flex', gap: 4, listStyle: 'none', margin: 0, padding: 0, alignItems: 'center', fontFamily: navFontFamily || undefined }}>
       {navLinks.map((link) => (
         <li key={link.url}>
           <a
@@ -246,6 +248,7 @@ export function NavbarBlock({
         )}
 
       </div>
+      <div aria-hidden style={{ height: 2, background: accentColor }} />
     </nav>
   )
 }

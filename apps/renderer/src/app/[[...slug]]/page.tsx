@@ -420,31 +420,36 @@ export default async function TenantPage({
   // La ruta actual para analytics (ej: "/" o "/sobre-nosotros")
   const currentPath = pageSlug ? `/${pageSlug}` : '/'
 
+  // Si el contenido ya tiene NavbarBlock o FooterBlock no duplicamos los wrappers
+  const hasNavbarBlock = page.content.some(b => b.type === 'NavbarBlock')
+  const hasFooterBlock = page.content.some(b => b.type === 'FooterBlock')
+
   return (
     <>
-      <SiteNav site={site} currentSlug={pageSlug || 'home'} />
+      {!hasNavbarBlock && <SiteNav site={site} currentSlug={pageSlug || 'home'} />}
 
       <BlockRenderer blocks={page.content} siteId={site.id} rootProps={page.rootProps} />
 
-      <footer className="border-t border-gray-200 py-8 text-center text-sm text-gray-500">
-        <p>
-          &copy; {new Date().getFullYear()} {site.name}. Todos los derechos reservados.
-        </p>
-        {/* TODO: mostrar solo en plan FREE cuando la API incluya datos de plan */}
-        {(site.plan === 'FREE' || site.plan === undefined) && (
-          <p className="mt-2 text-xs text-gray-400">
-            Sitio creado con{' '}
-            <a
-              href="https://edithpress.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-400 hover:text-gray-600 underline underline-offset-2 transition-colors"
-            >
-              EdithPress
-            </a>
+      {!hasFooterBlock && (
+        <footer className="border-t border-gray-200 py-8 text-center text-sm text-gray-500">
+          <p>
+            &copy; {new Date().getFullYear()} {site.name}. Todos los derechos reservados.
           </p>
-        )}
-      </footer>
+          {(site.plan === 'FREE' || site.plan === undefined) && (
+            <p className="mt-2 text-xs text-gray-400">
+              Sitio creado con{' '}
+              <a
+                href="https://edithpress.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-gray-600 underline underline-offset-2 transition-colors"
+              >
+                EdithPress
+              </a>
+            </p>
+          )}
+        </footer>
+      )}
 
       {isDraft && <DraftBanner />}
 

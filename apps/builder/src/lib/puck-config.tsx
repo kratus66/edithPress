@@ -126,17 +126,6 @@ export const puckConfig: Config = {
         textColor: colorField('Color del texto'),
         overlayColor: colorField('Color del overlay sobre imagen'),
         fontFamily: fontFamilyField('Fuente'),
-        backgroundImage: {
-          type: 'custom',
-          label: 'Imagen de fondo',
-          render: ({ value, onChange }) => (
-            <MediaPicker
-              value={value as string}
-              onChange={onChange}
-              label="Imagen de fondo"
-            />
-          ),
-        },
       },
       defaultProps: heroBlockDefaultProps,
       render: HeroBlock,

@@ -1,6 +1,7 @@
 import React from 'react'
 import type { Fields } from '@measured/puck'
 import { ColorPickerField } from '@/components/ColorPickerField'
+import { MediaPicker } from '@/components/MediaPicker'
 import {
   makeCollapsibleRadio,
   makeCollapsibleColor,
@@ -31,23 +32,35 @@ export interface SubtitleStyles {
   lineHeight: 'tight' | 'normal' | 'relaxed'
 }
 
+export interface EyebrowStyles {
+  fontSize: 'xs' | 'sm' | 'md' | 'lg'
+  fontWeight: 'light' | 'regular' | 'medium' | 'semibold' | 'bold'
+  color: string
+  letterSpacing: 'tight' | 'normal' | 'wide' | 'wider'
+  textTransform: 'uppercase' | 'capitalize' | 'none'
+}
+
+export interface ImageConfig {
+  src: string
+  position: 'left' | 'right' | 'cover' | 'cover-left' | 'cover-right'
+}
+
 export interface HeroBlockProps {
   title: string
   subtitle: string
   backgroundColor: string
-  backgroundImage: string
+  imageConfig: ImageConfig
   textColor: string
   buttons: HeroButton[]
   textAlign: 'left' | 'center' | 'right'
   paddingY: 'sm' | 'md' | 'lg' | 'xl'
   fontFamily: string
   eyebrowText: string
-  eyebrowColor: string
+  eyebrowStyles: EyebrowStyles
   overlayColor: string
   overlayOpacity: number
   titleStyles: TitleStyles
   subtitleStyles: SubtitleStyles
-  layout: 'full' | 'split-left' | 'split-right'
 }
 
 // ── Style maps ────────────────────────────────────────────────────────────────
@@ -94,6 +107,20 @@ const lineHeightMap: Record<SubtitleStyles['lineHeight'], number> = {
   relaxed: 1.9,
 }
 
+const eyebrowFontSizeMap: Record<EyebrowStyles['fontSize'], string> = {
+  xs: '0.65rem',
+  sm: '0.72rem',
+  md: '0.85rem',
+  lg: '1rem',
+}
+
+const eyebrowLetterSpacingMap: Record<EyebrowStyles['letterSpacing'], string> = {
+  tight: '0.03em',
+  normal: '0.08em',
+  wide: '0.15em',
+  wider: '0.25em',
+}
+
 // ── Defaults ──────────────────────────────────────────────────────────────────
 
 const defaultTitleStyles: TitleStyles = {
@@ -109,6 +136,19 @@ const defaultSubtitleStyles: SubtitleStyles = {
   color: '',
   opacity: 82,
   lineHeight: 'normal',
+}
+
+const defaultEyebrowStyles: EyebrowStyles = {
+  fontSize: 'sm',
+  fontWeight: 'bold',
+  color: '#9a6240',
+  letterSpacing: 'wide',
+  textTransform: 'uppercase',
+}
+
+const defaultImageConfig: ImageConfig = {
+  src: '',
+  position: 'cover',
 }
 
 // ── Slider helper ─────────────────────────────────────────────────────────────
@@ -133,12 +173,18 @@ function RangeField({ value, onChange, min = 0, max = 100, unit = '%' }: {
 
 // ── Field label maps (for getSummary) ─────────────────────────────────────────
 
-const sizeLabel: Record<string, string> = { sm: 'S', md: 'M', lg: 'L', xl: 'XL', xxl: 'XXL' }
+const sizeLabel: Record<string, string> = { xs: 'XS', sm: 'S', md: 'M', lg: 'L', xl: 'XL', xxl: 'XXL' }
 const weightLabel: Record<string, string> = {
   light: 'Ligero', regular: 'Normal', medium: 'Medio', semibold: 'Semibold', bold: 'Bold',
 }
 const spacingLabel: Record<string, string> = { tight: 'Ajustado', normal: 'Normal', wide: 'Amplio' }
+const eyebrowSpacingLabel: Record<string, string> = { tight: 'Ajustado', normal: 'Normal', wide: 'Amplio', wider: 'Muy amplio' }
 const lineHeightLabel: Record<string, string> = { tight: 'Ajustado', normal: 'Normal', relaxed: 'Suelto' }
+const textTransformLabel: Record<string, string> = { uppercase: 'MAYÚSCULAS', capitalize: 'Capitalizar', none: 'Normal' }
+const positionLabel: Record<string, string> = {
+  left: 'Izquierda', right: 'Derecha', cover: 'Fondo completo',
+  'cover-left': 'Izquierda completo', 'cover-right': 'Derecha completo',
+}
 
 // ── Fields ────────────────────────────────────────────────────────────────────
 
@@ -250,8 +296,62 @@ export const heroBlockFields: Fields<HeroBlockProps> = {
     defaultSubtitleStyles,
   ) as Fields<HeroBlockProps>['subtitleStyles'],
 
-  // ── Eyebrow ────────────────────────────────────────────────────────────────
-  eyebrowColor: makeCollapsibleColor('Color de la etiqueta') as Fields<HeroBlockProps>['eyebrowColor'],
+  // ── Estilos de Eyebrow (grupo colapsable) ─────────────────────────────────
+  eyebrowStyles: makeCollapsibleGroup<EyebrowStyles>(
+    'Etiqueta',
+    [
+      {
+        key: 'fontSize',
+        title: 'Tamaño',
+        getSummary: (v) => sizeLabel[v as string] ?? String(v),
+        render: (value, onChange) => renderRadioOptions(
+          [{ label: 'XS', value: 'xs' }, { label: 'S', value: 'sm' },
+           { label: 'M', value: 'md' }, { label: 'L', value: 'lg' }],
+          value, onChange,
+        ),
+      },
+      {
+        key: 'fontWeight',
+        title: 'Peso',
+        getSummary: (v) => weightLabel[v as string] ?? String(v),
+        render: (value, onChange) => renderRadioOptions(
+          [{ label: 'Ligero', value: 'light' }, { label: 'Normal', value: 'regular' },
+           { label: 'Medio', value: 'medium' }, { label: 'Semibold', value: 'semibold' },
+           { label: 'Bold', value: 'bold' }],
+          value, onChange,
+        ),
+      },
+      {
+        key: 'color',
+        title: 'Color',
+        getSummary: (v) => (v as string) || 'Heredado',
+        render: (value, onChange) => (
+          <ColorPickerField value={(value as string) || '#9a6240'} onChange={onChange as (v: string) => void} />
+        ),
+      },
+      {
+        key: 'letterSpacing',
+        title: 'Espaciado',
+        getSummary: (v) => eyebrowSpacingLabel[v as string] ?? String(v),
+        render: (value, onChange) => renderRadioOptions(
+          [{ label: 'Ajustado', value: 'tight' }, { label: 'Normal', value: 'normal' },
+           { label: 'Amplio', value: 'wide' }, { label: 'Muy amplio', value: 'wider' }],
+          value, onChange,
+        ),
+      },
+      {
+        key: 'textTransform',
+        title: 'Transformación',
+        getSummary: (v) => textTransformLabel[v as string] ?? String(v),
+        render: (value, onChange) => renderRadioOptions(
+          [{ label: 'MAYÚSCULAS', value: 'uppercase' }, { label: 'Capitalizar', value: 'capitalize' },
+           { label: 'Normal', value: 'none' }],
+          value, onChange,
+        ),
+      },
+    ],
+    defaultEyebrowStyles,
+  ) as Fields<HeroBlockProps>['eyebrowStyles'],
 
   // ── Alineacion y tipografia ────────────────────────────────────────────────
   textAlign: makeCollapsibleRadio('Alineacion', [
@@ -261,12 +361,6 @@ export const heroBlockFields: Fields<HeroBlockProps> = {
   ]) as Fields<HeroBlockProps>['textAlign'],
   fontFamily: { type: 'text', label: 'Fuente' },
 
-  // ── Disposicion ────────────────────────────────────────────────────────────
-  layout: makeCollapsibleRadio('Disposicion', [
-    { label: 'Completo', value: 'full' },
-    { label: 'Texto izquierda', value: 'split-left' },
-    { label: 'Texto derecha', value: 'split-right' },
-  ]) as Fields<HeroBlockProps>['layout'],
   paddingY: makeCollapsibleRadio('Altura del hero', [
     { label: 'Pequeno', value: 'sm' },
     { label: 'Mediano', value: 'md' },
@@ -344,9 +438,43 @@ export const heroBlockFields: Fields<HeroBlockProps> = {
     getItemSummary: (item: { text?: string }) => (item.text as string) || 'Boton',
   },
 
+  // ── Imagen ─────────────────────────────────────────────────────────────────
+  imageConfig: makeCollapsibleGroup<ImageConfig>(
+    'Imagen',
+    [
+      {
+        key: 'src',
+        title: 'Imagen',
+        getSummary: (v) => (v as string) ? 'Configurada' : 'Sin imagen',
+        render: (value, onChange) => (
+          <MediaPicker
+            value={(value as string) || ''}
+            onChange={onChange as (v: string) => void}
+            label="Imagen"
+          />
+        ),
+      },
+      {
+        key: 'position',
+        title: 'Posición',
+        getSummary: (v) => positionLabel[v as string] ?? String(v),
+        render: (value, onChange) => renderRadioOptions(
+          [
+            { label: 'Izquierda', value: 'left' },
+            { label: 'Derecha', value: 'right' },
+            { label: 'Fondo completo', value: 'cover' },
+            { label: 'Izquierda completo', value: 'cover-left' },
+            { label: 'Derecha completo', value: 'cover-right' },
+          ],
+          value, onChange,
+        ),
+      },
+    ],
+    defaultImageConfig,
+  ) as Fields<HeroBlockProps>['imageConfig'],
+
   // ── Fondo ──────────────────────────────────────────────────────────────────
   backgroundColor: makeCollapsibleColor('Color de fondo') as Fields<HeroBlockProps>['backgroundColor'],
-  backgroundImage: { type: 'text', label: 'URL imagen de fondo / columna' },
   overlayColor: makeCollapsibleColor('Color del overlay') as Fields<HeroBlockProps>['overlayColor'],
   overlayOpacity: {
     type: 'custom',
@@ -364,7 +492,7 @@ export const heroBlockDefaultProps: HeroBlockProps = {
   title: 'Bienvenido a mi negocio',
   subtitle: 'Ofrecemos los mejores servicios de la region',
   backgroundColor: '#faf7f4',
-  backgroundImage: '',
+  imageConfig: defaultImageConfig,
   textColor: '#1a1a2e',
   buttons: [
     { text: 'Explorar coleccion', url: '#', variant: 'solid', bgColor: '#3d2314', textColor: '#ffffff' },
@@ -374,12 +502,11 @@ export const heroBlockDefaultProps: HeroBlockProps = {
   paddingY: 'lg',
   fontFamily: 'inherit',
   eyebrowText: '',
-  eyebrowColor: '#9a6240',
+  eyebrowStyles: defaultEyebrowStyles,
   overlayColor: '#000000',
   overlayOpacity: 0,
   titleStyles: defaultTitleStyles,
   subtitleStyles: defaultSubtitleStyles,
-  layout: 'full',
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -388,22 +515,29 @@ export function HeroBlock({
   title,
   subtitle,
   backgroundColor,
-  backgroundImage,
+  imageConfig = defaultImageConfig,
   textColor,
   buttons = [],
   textAlign,
   paddingY,
   fontFamily = 'inherit',
   eyebrowText = '',
-  eyebrowColor = '#9a6240',
+  eyebrowStyles = defaultEyebrowStyles,
   overlayColor = '#000000',
   overlayOpacity = 0,
   titleStyles = defaultTitleStyles,
   subtitleStyles = defaultSubtitleStyles,
-  layout = 'full',
 }: HeroBlockProps) {
+  const ic = { ...defaultImageConfig, ...imageConfig }
+  const backgroundImage = ic.src
+  const position = ic.position
+  const layout = position === 'left' ? 'split-right'
+               : position === 'right' ? 'split-left'
+               : 'full'
+
   const ts = { ...defaultTitleStyles, ...titleStyles }
   const ss = { ...defaultSubtitleStyles, ...subtitleStyles }
+  const es = { ...defaultEyebrowStyles, ...eyebrowStyles }
 
   const padding = paddingMap[paddingY] ?? '120px'
   const resolvedTitleSize = titleFontSizeMap[ts.fontSize] ?? titleFontSizeMap.lg
@@ -427,11 +561,11 @@ export function HeroBlock({
     <>
       {eyebrowText && (
         <p style={{
-          fontSize: '0.72rem',
-          fontWeight: 700,
-          letterSpacing: '0.15em',
-          textTransform: 'uppercase',
-          color: eyebrowColor || textColor,
+          fontSize: eyebrowFontSizeMap[es.fontSize] ?? eyebrowFontSizeMap.sm,
+          fontWeight: weightMap[es.fontWeight] ?? 700,
+          letterSpacing: eyebrowLetterSpacingMap[es.letterSpacing] ?? '0.15em',
+          textTransform: es.textTransform as React.CSSProperties['textTransform'],
+          color: es.color || textColor,
           marginBottom: '14px',
           fontFamily,
         }}>
@@ -497,12 +631,65 @@ export function HeroBlock({
     </>
   )
 
+  // ── Cover-left / Cover-right layout ───────────────────────────────────────
+
+  if (position === 'cover-left' || position === 'cover-right') {
+    const isLeft = position === 'cover-left'
+    const overlayHexCover = overlayOpacity > 0
+      ? `${overlayColor}${Math.round((overlayOpacity / 100) * 255).toString(16).padStart(2, '0')}`
+      : null
+    return (
+      <section style={{
+        position: 'relative',
+        display: 'flex',
+        fontFamily,
+        minHeight: 480,
+        backgroundImage: backgroundImage ? `url(${backgroundImage})` : 'none',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundColor,
+        alignItems: 'stretch',
+      }}>
+        {overlayHexCover && backgroundImage && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundColor: overlayHexCover,
+            pointerEvents: 'none',
+          }} />
+        )}
+        {!isLeft && <div style={{ flex: '1 1 50%' }} />}
+        <div style={{
+          flex: '0 0 50%',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          padding: `${padding} clamp(32px, 5vw, 80px)`,
+          color: textColor,
+          textAlign,
+          position: 'relative',
+          zIndex: 1,
+          boxSizing: 'border-box',
+        }}>
+          {content}
+        </div>
+        {isLeft && <div style={{ flex: '1 1 50%' }} />}
+      </section>
+    )
+  }
+
   // ── Split layout ───────────────────────────────────────────────────────────
 
   if (layout === 'split-left' || layout === 'split-right') {
     const isTextLeft = layout === 'split-left'
     return (
-      <section style={{ display: 'flex', fontFamily, minHeight: 480 }}>
+      <section style={{
+        display: 'flex',
+        fontFamily,
+        minHeight: 480,
+        backgroundColor,
+        alignItems: 'stretch',
+      }}>
         <div
           style={{
             flex: '1 1 50%',
@@ -510,7 +697,6 @@ export function HeroBlock({
             flexDirection: 'column',
             justifyContent: 'center',
             padding: `${padding} clamp(32px, 5vw, 80px)`,
-            backgroundColor,
             color: textColor,
             textAlign,
             order: isTextLeft ? 0 : 1,
@@ -525,9 +711,7 @@ export function HeroBlock({
             backgroundImage: backgroundImage ? `url(${backgroundImage})` : 'none',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-            backgroundColor: backgroundImage ? 'transparent' : '#e2e8f0',
             order: isTextLeft ? 1 : 0,
-            minHeight: 400,
           }}
         />
       </section>

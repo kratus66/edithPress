@@ -15,6 +15,10 @@ const SYSTEM_FONTS = [
 
 // Fuentes de Google Fonts (se cargan dinámicamente)
 const GOOGLE_FONTS = [
+  // ── Geist (diseño moderno / Vercel) ──────────────────────────────────────
+  { label: 'Geist', value: 'Geist, sans-serif', gfName: 'Geist' },
+  { label: 'Geist Mono', value: '"Geist Mono", monospace', gfName: 'Geist+Mono' },
+  // ── Sans-serif ────────────────────────────────────────────────────────────
   { label: 'Inter', value: 'Inter, sans-serif', gfName: 'Inter' },
   { label: 'Roboto', value: 'Roboto, sans-serif', gfName: 'Roboto' },
   { label: 'Open Sans', value: '"Open Sans", sans-serif', gfName: 'Open+Sans' },
@@ -24,9 +28,11 @@ const GOOGLE_FONTS = [
   { label: 'Raleway', value: 'Raleway, sans-serif', gfName: 'Raleway' },
   { label: 'Nunito', value: 'Nunito, sans-serif', gfName: 'Nunito' },
   { label: 'Oswald', value: 'Oswald, sans-serif', gfName: 'Oswald' },
+  { label: 'Ubuntu', value: 'Ubuntu, sans-serif', gfName: 'Ubuntu' },
+  // ── Serif ─────────────────────────────────────────────────────────────────
   { label: 'Merriweather', value: 'Merriweather, serif', gfName: 'Merriweather' },
   { label: 'Playfair Display', value: '"Playfair Display", serif', gfName: 'Playfair+Display' },
-  { label: 'Ubuntu', value: 'Ubuntu, sans-serif', gfName: 'Ubuntu' },
+  // ── Display / decorativas ─────────────────────────────────────────────────
   { label: 'Bebas Neue', value: '"Bebas Neue", cursive', gfName: 'Bebas+Neue' },
   { label: 'Pacifico', value: 'Pacifico, cursive', gfName: 'Pacifico' },
   { label: 'Dancing Script', value: '"Dancing Script", cursive', gfName: 'Dancing+Script' },
@@ -82,8 +88,13 @@ export function FontFamilyField({ value, onChange }: FontFamilyFieldProps) {
             <option key={f.value} value={f.value}>{f.label}</option>
           ))}
         </optgroup>
+        <optgroup label="⭐ Recomendadas">
+          {GOOGLE_FONTS.slice(0, 2).map(f => (
+            <option key={f.value} value={f.value}>{f.label}</option>
+          ))}
+        </optgroup>
         <optgroup label="Google Fonts">
-          {GOOGLE_FONTS.map(f => (
+          {GOOGLE_FONTS.slice(2).map(f => (
             <option key={f.value} value={f.value}>{f.label}</option>
           ))}
         </optgroup>

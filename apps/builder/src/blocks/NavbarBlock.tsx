@@ -2,6 +2,7 @@ import React from 'react'
 import type { Fields } from '@measured/puck'
 import { ColorPickerField } from '@/components/ColorPickerField'
 import { FontFamilyField } from '@/components/FontFamilyField'
+import { CollapsibleSection } from '@/components/CollapsibleSection'
 import { makeCollapsibleRadio, makeCollapsibleColor } from '@/lib/fieldHelpers'
 
 export interface LogoLine {
@@ -27,6 +28,7 @@ export interface NavbarBlockProps {
   showCart: boolean
   layout: 'logo-left' | 'logo-left-links-center' | 'logo-center'
   navFontWeight: 'light' | 'regular' | 'medium'
+  navFontFamily: string
   borderStyle: 'shadow' | 'border' | 'none'
 }
 
@@ -144,9 +146,31 @@ export const navbarBlockFields: Fields<NavbarBlockProps> = {
     defaultItemProps: { label: 'Nuevo enlace', url: '#' },
     getItemSummary: (item: { label?: string }) => (item.label as string) || 'Enlace',
   },
-  backgroundColor: makeCollapsibleColor('Color de fondo') as Fields<NavbarBlockProps>['backgroundColor'],
-  textColor: makeCollapsibleColor('Color del texto') as Fields<NavbarBlockProps>['textColor'],
-  accentColor: makeCollapsibleColor('Color de acento') as Fields<NavbarBlockProps>['accentColor'],
+  backgroundColor: makeCollapsibleColor('Fondo del navbar') as Fields<NavbarBlockProps>['backgroundColor'],
+  textColor: makeCollapsibleColor('Color de los enlaces') as Fields<NavbarBlockProps>['textColor'],
+  accentColor: {
+    type: 'custom' as const,
+    render: ({ value, onChange }: { value: unknown; onChange: (v: string) => void }) => {
+      const color = (value as string) ?? '#b45309'
+      const subtitle = /^#[0-9a-fA-F]{6}$/.test(color) ? color : color
+      return (
+        <CollapsibleSection title="Color al pasar el cursor (hover)" subtitle={subtitle} defaultOpen={false} noBorderTop>
+          <p style={{ margin: '0 0 8px', fontSize: 11, color: '#94a3b8', fontFamily: 'sans-serif', lineHeight: 1.4 }}>
+            Aparece cuando el visitante pasa el cursor sobre un enlace. También se usa como línea decorativa inferior del navbar.
+          </p>
+          <ColorPickerField value={color} onChange={onChange} />
+        </CollapsibleSection>
+      )
+    },
+  } as unknown as Fields<NavbarBlockProps>['accentColor'],
+  navFontFamily: {
+    type: 'custom' as const,
+    render: ({ value, onChange }: { value: unknown; onChange: (v: string) => void }) => (
+      <CollapsibleSection title="Fuente de los enlaces" defaultOpen={false} noBorderTop>
+        <FontFamilyField value={(value as string) || ''} onChange={onChange} />
+      </CollapsibleSection>
+    ),
+  } as unknown as Fields<NavbarBlockProps>['navFontFamily'],
   layout: makeCollapsibleRadio('Disposición', [
     { label: 'Logo izq. · Links izq.', value: 'logo-left' },
     { label: 'Logo izq. · Links centrados', value: 'logo-left-links-center' },
@@ -196,6 +220,7 @@ export const navbarBlockDefaultProps: NavbarBlockProps = {
   showCart: false,
   layout: 'logo-left',
   navFontWeight: 'medium',
+  navFontFamily: '',
   borderStyle: 'shadow',
 }
 
@@ -223,6 +248,7 @@ export function NavbarBlock({
   showCart,
   layout,
   navFontWeight,
+  navFontFamily,
   borderStyle,
 }: NavbarBlockProps) {
   const isSticky = isTruthy(sticky)
@@ -278,7 +304,7 @@ export function NavbarBlock({
   const linkWeight = NAV_FONT_WEIGHT_MAP[navFontWeight] ?? 500
 
   const NavLinks = (
-    <ul style={{ display: 'flex', gap: 4, listStyle: 'none', margin: 0, padding: 0, alignItems: 'center' }}>
+    <ul style={{ display: 'flex', gap: 4, listStyle: 'none', margin: 0, padding: 0, alignItems: 'center', fontFamily: navFontFamily || undefined }}>
       {navLinks.map((link) => (
         <li key={link.url}>
           <a
@@ -372,6 +398,8 @@ export function NavbarBlock({
         )}
 
       </div>
+      {/* Línea decorativa inferior que muestra el color de acento */}
+      <div aria-hidden style={{ height: 2, background: accentColor }} />
     </nav>
   )
 }
