@@ -116,7 +116,7 @@ export function makeCollapsibleColor(title: string) {
  *     { key: 'fontSize', title: 'Tamaño', getSummary: v => String(v), render: (v, onChange) => ... },
  *   ], defaults)
  */
-export function makeCollapsibleGroup<T extends Record<string, unknown>>(
+export function makeCollapsibleGroup<T extends object>(
   groupTitle: string,
   sectionDefs: Array<{
     key: keyof T & string
@@ -130,13 +130,13 @@ export function makeCollapsibleGroup<T extends Record<string, unknown>>(
     type: 'custom' as const,
     render: ({ value, onChange }: { value: unknown; onChange: (v: T) => void }) => {
       const current = { ...defaults, ...(value as Partial<T>) } as T
-      const update = (key: keyof T, v: unknown) =>
+      const update = (key: keyof T & string, v: unknown) =>
         onChange({ ...current, [key]: v } as T)
 
       return (
         <CollapsibleSection title={groupTitle} defaultOpen={false} noBorderTop>
           {sectionDefs.map((def) => {
-            const fieldValue = current[def.key]
+            const fieldValue = (current as Record<string, unknown>)[def.key]
             const subtitle = def.getSummary ? def.getSummary(fieldValue) : undefined
             return (
               <CollapsibleSection

@@ -38,7 +38,9 @@ export interface ImageConfig {
 
 export interface HeroBlockProps {
   title: string
+  titleHtml?: string
   subtitle: string
+  subtitleHtml?: string
   backgroundColor: string
   imageConfig: ImageConfig
   textColor: string
@@ -80,20 +82,16 @@ const eyebrowLetterSpacingMap: Record<EyebrowStyles['letterSpacing'], string> = 
   tight: '0.03em', normal: '0.08em', wide: '0.15em', wider: '0.25em',
 }
 
-const defaultTitleStyles: TitleStyles = {
-  fontSize: 'lg', fontWeight: 'bold', color: '', letterSpacing: 'normal',
-}
-const defaultSubtitleStyles: SubtitleStyles = {
-  fontSize: 'lg', fontWeight: 'regular', color: '', opacity: 82, lineHeight: 'normal',
-}
-const defaultEyebrowStyles: EyebrowStyles = {
-  fontSize: 'sm', fontWeight: 'bold', color: '#9a6240', letterSpacing: 'wide', textTransform: 'uppercase',
-}
-const defaultImageConfig: ImageConfig = { src: '', position: 'cover' }
+const defaultTitleStyles: TitleStyles    = { fontSize: 'lg', fontWeight: 'bold',    color: '', letterSpacing: 'normal' }
+const defaultSubtitleStyles: SubtitleStyles = { fontSize: 'lg', fontWeight: 'regular', color: '', opacity: 82, lineHeight: 'normal' }
+const defaultEyebrowStyles: EyebrowStyles   = { fontSize: 'sm', fontWeight: 'bold',    color: '#9a6240', letterSpacing: 'wide', textTransform: 'uppercase' }
+const defaultImageConfig: ImageConfig       = { src: '', position: 'cover' }
 
 export function HeroBlock({
   title,
+  titleHtml = '',
   subtitle,
+  subtitleHtml = '',
   backgroundColor,
   imageConfig = defaultImageConfig,
   textColor,
@@ -115,25 +113,36 @@ export function HeroBlock({
                : position === 'right' ? 'split-left'
                : 'full'
 
-  const ts = { ...defaultTitleStyles, ...titleStyles }
+  const ts = { ...defaultTitleStyles,    ...titleStyles }
   const ss = { ...defaultSubtitleStyles, ...subtitleStyles }
-  const es = { ...defaultEyebrowStyles, ...eyebrowStyles }
+  const es = { ...defaultEyebrowStyles,  ...eyebrowStyles }
 
-  const padding = paddingMap[paddingY] ?? '120px'
-  const resolvedTitleSize = titleFontSizeMap[ts.fontSize] ?? titleFontSizeMap.lg
-  const resolvedTitleWeight = weightMap[ts.fontWeight] ?? 700
-  const resolvedTitleColor = ts.color || textColor
-  const resolvedLetterSpacing = letterSpacingMap[ts.letterSpacing] ?? '0em'
+  const padding              = paddingMap[paddingY] ?? '120px'
+  const resolvedTitleSize    = titleFontSizeMap[ts.fontSize]    ?? titleFontSizeMap.lg
+  const resolvedTitleWeight  = weightMap[ts.fontWeight]         ?? 700
+  const resolvedTitleColor   = ts.color || textColor
+  const resolvedLetterSpacing= letterSpacingMap[ts.letterSpacing] ?? '0em'
+  const resolvedSubtitleSize = subtitleFontSizeMap[ss.fontSize]  ?? subtitleFontSizeMap.lg
+  const resolvedSubtitleWeight=weightMap[ss.fontWeight]          ?? 400
+  const resolvedSubtitleColor= ss.color || textColor
+  const resolvedLineHeight   = lineHeightMap[ss.lineHeight]      ?? 1.6
+  const subtitleOpacity      = (ss.opacity ?? 82) / 100
 
-  const resolvedSubtitleSize = subtitleFontSizeMap[ss.fontSize] ?? subtitleFontSizeMap.lg
-  const resolvedSubtitleWeight = weightMap[ss.fontWeight] ?? 400
-  const resolvedSubtitleColor = ss.color || textColor
-  const resolvedLineHeight = lineHeightMap[ss.lineHeight] ?? 1.6
-  const subtitleOpacity = (ss.opacity ?? 82) / 100
+  const activeButtons  = buttons.filter(b => b.text)
+  const buttonsJustify = textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start'
+  const blockJustify   = textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start'
 
-  const activeButtons = buttons.filter(b => b.text)
-  const justifyContent =
-    textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start'
+  const titleStyle: React.CSSProperties = {
+    fontSize: resolvedTitleSize, fontWeight: resolvedTitleWeight,
+    lineHeight: resolvedTitleWeight <= 400 ? 1.15 : 1.1,
+    letterSpacing: resolvedLetterSpacing, color: resolvedTitleColor,
+    marginBottom: '18px', fontFamily,
+  }
+  const subtitleStyle: React.CSSProperties = {
+    fontSize: resolvedSubtitleSize, fontWeight: resolvedSubtitleWeight,
+    opacity: subtitleOpacity, lineHeight: resolvedLineHeight,
+    color: resolvedSubtitleColor, marginBottom: '36px', fontFamily,
+  }
 
   const content = (
     <>
@@ -143,63 +152,38 @@ export function HeroBlock({
           fontWeight: weightMap[es.fontWeight] ?? 700,
           letterSpacing: eyebrowLetterSpacingMap[es.letterSpacing] ?? '0.15em',
           textTransform: es.textTransform as React.CSSProperties['textTransform'],
-          color: es.color || textColor,
-          marginBottom: '14px',
-          fontFamily,
+          color: es.color || textColor, marginBottom: '14px', fontFamily,
         }}>
           {eyebrowText}
         </p>
       )}
 
-      <h1 style={{
-        fontSize: resolvedTitleSize,
-        fontWeight: resolvedTitleWeight,
-        lineHeight: resolvedTitleWeight <= 400 ? 1.15 : 1.1,
-        letterSpacing: resolvedLetterSpacing,
-        color: resolvedTitleColor,
-        marginBottom: '18px',
-        fontFamily,
-      }}>
-        {title}
-      </h1>
+      {titleHtml
+        ? <h1 style={titleStyle} dangerouslySetInnerHTML={{ __html: titleHtml }} />
+        : <h1 style={titleStyle}>{title}</h1>
+      }
 
-      <p style={{
-        fontSize: resolvedSubtitleSize,
-        fontWeight: resolvedSubtitleWeight,
-        opacity: subtitleOpacity,
-        lineHeight: resolvedLineHeight,
-        color: resolvedSubtitleColor,
-        marginBottom: '36px',
-        fontFamily,
-      }}>
-        {subtitle}
-      </p>
+      {subtitleHtml
+        ? <p style={subtitleStyle} dangerouslySetInnerHTML={{ __html: subtitleHtml }} />
+        : <p style={subtitleStyle}>{subtitle}</p>
+      }
 
       {activeButtons.length > 0 && (
-        <div style={{ display: 'flex', gap: 14, justifyContent, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 14, justifyContent: buttonsJustify, flexWrap: 'wrap' }}>
           {activeButtons.map((btn, i) => {
-            const isSolid = btn.variant === 'solid'
+            const isSolid   = btn.variant === 'solid'
             const isOutline = btn.variant === 'outline'
             return (
-              <a
-                key={i}
-                href={sanitizeUrl(btn.url || '#')}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  backgroundColor: isSolid ? (btn.bgColor || textColor) : 'transparent',
-                  color: btn.textColor || textColor,
-                  padding: '13px 28px',
-                  borderRadius: '6px',
-                  fontWeight: 600,
-                  fontSize: '0.95rem',
-                  fontFamily,
-                  border: isOutline ? `2px solid ${btn.textColor || textColor}` : 'none',
-                  textDecoration: btn.variant === 'ghost' ? 'underline' : 'none',
-                  letterSpacing: '0.01em',
-                }}
-              >
+              <a key={i} href={sanitizeUrl(btn.url || '#')} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                backgroundColor: isSolid ? (btn.bgColor || textColor) : 'transparent',
+                color: btn.textColor || textColor,
+                padding: '13px 28px', borderRadius: '6px',
+                fontWeight: 600, fontSize: '0.95rem', fontFamily,
+                border: isOutline ? `2px solid ${btn.textColor || textColor}` : 'none',
+                textDecoration: btn.variant === 'ghost' ? 'underline' : 'none',
+                letterSpacing: '0.01em',
+              }}>
                 {btn.text}
               </a>
             )
@@ -209,7 +193,7 @@ export function HeroBlock({
     </>
   )
 
-  // ── Cover-left / Cover-right layout ───────────────────────────────────────
+  // ── Cover-left / Cover-right ───────────────────────────────────────────────
 
   if (position === 'cover-left' || position === 'cover-right') {
     const isLeft = position === 'cover-left'
@@ -218,31 +202,19 @@ export function HeroBlock({
       : null
     return (
       <section style={{
-        position: 'relative',
-        display: 'flex',
-        fontFamily,
-        minHeight: 480,
+        position: 'relative', display: 'flex', fontFamily, minHeight: 480,
         backgroundImage: backgroundImage ? `url(${backgroundImage})` : 'none',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundColor,
-        alignItems: 'stretch',
+        backgroundSize: 'cover', backgroundPosition: 'center',
+        backgroundColor, alignItems: 'stretch',
       }}>
         {overlayHexCover && backgroundImage && (
           <div style={{ position: 'absolute', inset: 0, backgroundColor: overlayHexCover, pointerEvents: 'none' }} />
         )}
         {!isLeft && <div style={{ flex: '1 1 50%' }} />}
         <div style={{
-          flex: '0 0 50%',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          padding: `${padding} clamp(32px,5vw,80px)`,
-          color: textColor,
-          textAlign,
-          position: 'relative',
-          zIndex: 1,
-          boxSizing: 'border-box',
+          flex: '0 0 50%', display: 'flex', flexDirection: 'column', justifyContent: 'center',
+          padding: `${padding} clamp(32px,5vw,80px)`, color: textColor, textAlign,
+          position: 'relative', zIndex: 1, boxSizing: 'border-box',
         }}>
           {content}
         </div>
@@ -258,51 +230,44 @@ export function HeroBlock({
     return (
       <section style={{ display: 'flex', fontFamily, minHeight: 480, backgroundColor, alignItems: 'stretch' }}>
         <div style={{
-          flex: '1 1 50%',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          padding: `${padding} clamp(32px,5vw,80px)`,
-          color: textColor,
-          textAlign,
-          order: isTextLeft ? 0 : 1,
-          boxSizing: 'border-box',
+          flex: '1 1 50%', display: 'flex', flexDirection: 'column', justifyContent: 'center',
+          padding: `${padding} clamp(32px,5vw,80px)`, color: textColor, textAlign,
+          order: isTextLeft ? 0 : 1, boxSizing: 'border-box',
         }}>
           {content}
         </div>
         <div style={{
           flex: '1 1 50%',
           backgroundImage: backgroundImage ? `url(${backgroundImage})` : 'none',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          backgroundSize: 'cover', backgroundPosition: 'center',
           order: isTextLeft ? 1 : 0,
         }} />
       </section>
     )
   }
 
-  // ── Full / cover layout ────────────────────────────────────────────────────
+  // ── Full layout ────────────────────────────────────────────────────────────
 
   const overlayHex = overlayOpacity > 0
     ? `${overlayColor}${Math.round((overlayOpacity / 100) * 255).toString(16).padStart(2, '0')}`
     : null
 
   const bgStyle: React.CSSProperties = backgroundImage
-    ? {
-        backgroundImage: `url(${backgroundImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        position: 'relative',
-      }
+    ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }
     : {}
 
   return (
-    <section style={{ backgroundColor, color: textColor, padding: `${padding} 40px`, textAlign, fontFamily, ...bgStyle }}>
+    <section style={{
+      position: 'relative',
+      backgroundColor, color: textColor,
+      padding: `${padding} clamp(32px, 6vw, 80px)`,
+      fontFamily, display: 'flex', justifyContent: blockJustify,
+      ...bgStyle,
+    }}>
       {overlayHex && backgroundImage && (
         <div style={{ position: 'absolute', inset: 0, backgroundColor: overlayHex, pointerEvents: 'none' }} />
       )}
-      <div style={{ maxWidth: '800px', margin: '0 auto', position: 'relative' }}>
+      <div style={{ maxWidth: '640px', width: '100%', position: 'relative', zIndex: 1, textAlign }}>
         {content}
       </div>
     </section>

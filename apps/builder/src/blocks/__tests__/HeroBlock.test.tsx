@@ -58,7 +58,7 @@ describe('HeroBlock', () => {
     const { container } = render(
       <HeroBlock
         {...heroBlockDefaultProps}
-        backgroundImage="https://example.com/hero.jpg"
+        imageConfig={{ src: 'https://example.com/hero.jpg', position: 'cover' }}
         overlayOpacity={0}
       />
     )
@@ -73,17 +73,44 @@ describe('HeroBlock', () => {
     const { container } = render(
       <HeroBlock
         {...heroBlockDefaultProps}
-        backgroundImage="https://example.com/hero.jpg"
+        imageConfig={{ src: 'https://example.com/hero.jpg', position: 'cover' }}
         overlayColor="#000000"
         overlayOpacity={50}
       />
     )
-    // overlayOpacity=50 → overlayHex is set → overlay div is rendered with pointerEvents: none
     const overlayDiv = Array.from(container.querySelectorAll('div')).find(
       (el) => el.style.pointerEvents === 'none'
     )
     expect(overlayDiv).toBeTruthy()
-    // backgroundColor should be set to the hex+alpha value
     expect(overlayDiv?.style.backgroundColor).toBeTruthy()
+  })
+
+  it('should render titleHtml as HTML when provided, ignoring plain title', () => {
+    const { container } = render(
+      <HeroBlock
+        {...heroBlockDefaultProps}
+        title="Plain title"
+        titleHtml="<strong>HTML title</strong>"
+      />
+    )
+    const h1 = container.querySelector('h1')
+    expect(h1?.innerHTML).toBe('<strong>HTML title</strong>')
+    expect(screen.queryByText('Plain title')).toBeNull()
+  })
+
+  it('should render plain title when titleHtml is empty', () => {
+    render(<HeroBlock {...heroBlockDefaultProps} title="Solo texto" titleHtml="" />)
+    expect(screen.getByText('Solo texto')).toBeTruthy()
+  })
+
+  it('should render subtitleHtml as HTML when provided', () => {
+    const { container } = render(
+      <HeroBlock
+        {...heroBlockDefaultProps}
+        subtitleHtml="Texto <em>especial</em>"
+      />
+    )
+    const p = container.querySelectorAll('p')[0]
+    expect(p?.innerHTML).toContain('<em>especial</em>')
   })
 })
