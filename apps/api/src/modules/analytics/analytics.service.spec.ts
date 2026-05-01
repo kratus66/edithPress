@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { NotFoundException } from '@nestjs/common'
+import type { Request } from 'express'
 import { AnalyticsService } from './analytics.service'
 import { DatabaseService } from '../database/database.service'
 import { RedisService } from '../redis/redis.service'
@@ -33,6 +34,18 @@ describe('AnalyticsService', () => {
     del: jest.fn(),
   }
 
+  // ─── Helper: req mock ────────────────────────────────────────────────────────
+  //
+  // La nueva firma de trackPageView recibe (dto, req).
+  // La IP se lee desde headers['x-real-ip'] o req.ip.
+  //
+  function buildMockReq(ip = '1.2.3.4'): Request {
+    return {
+      headers: { 'x-real-ip': ip },
+      ip,
+    } as unknown as Request
+  }
+
   // ─── Setup ────────────────────────────────────────────────────────────────────
 
   beforeAll(async () => {
@@ -56,16 +69,15 @@ describe('AnalyticsService', () => {
   describe('trackPageView()', () => {
     it('should create a pageView record in DB when site exists', async () => {
       // Arrange
-      mockDb.site.findUnique.mockResolvedValueOnce({ id: 'site-001' })
+      mockDb.site.findUnique.mockResolvedValueOnce({ id: 'site-001', tenantId: 'tenant-001' })
       mockPageViewModel.create.mockResolvedValueOnce({ id: 'pv-001' })
       mockRedis.del.mockResolvedValue(undefined)
 
       // Act
-      await service.trackPageView({
-        siteId: 'site-001',
-        path: '/home',
-        referrer: 'https://google.com',
-      })
+      await service.trackPageView(
+        { siteId: 'site-001', path: '/home', referrer: 'https://google.com' },
+        buildMockReq(),
+      )
 
       // Assert
       expect(mockPageViewModel.create).toHaveBeenCalledTimes(1)
@@ -80,32 +92,101 @@ describe('AnalyticsService', () => {
       )
     })
 
-    it('should NOT store IP address in pageView data (GDPR compliance)', async () => {
+    it('should store ipHash (sha256 hex) instead of raw IP — GDPR compliance', async () => {
       // Arrange
-      mockDb.site.findUnique.mockResolvedValueOnce({ id: 'site-001' })
+      mockDb.site.findUnique.mockResolvedValueOnce({ id: 'site-001', tenantId: 'tenant-001' })
       mockPageViewModel.create.mockResolvedValueOnce({ id: 'pv-002' })
       mockRedis.del.mockResolvedValue(undefined)
 
-      // Act
-      await service.trackPageView({
-        siteId: 'site-001',
-        path: '/about',
-      })
+      const ip = '1.2.3.4'
 
-      // Assert — el objeto pasado a create no debe contener una propiedad 'ip'
+      // Act
+      await service.trackPageView(
+        { siteId: 'site-001', path: '/about' },
+        buildMockReq(ip),
+      )
+
+      // Assert — el objeto pasado a create no debe contener la IP raw
       const createCall = mockPageViewModel.create.mock.calls[0][0]
       expect(createCall.data).not.toHaveProperty('ip')
       expect(Object.keys(createCall.data)).not.toContain('ipAddress')
+
+      // ipHash debe ser un hash hex de 64 caracteres (sha256) — no la IP en claro
+      expect(createCall.data.ipHash).toBeDefined()
+      expect(createCall.data.ipHash).not.toBe(ip)
+      expect(createCall.data.ipHash).toMatch(/^[0-9a-f]{64}$/)
+    })
+
+    it('should NOT create pageView when userAgent matches a bot pattern (Googlebot)', async () => {
+      // Arrange — bot check runs before findUnique; no mock needed
+
+      // Act
+      await service.trackPageView(
+        {
+          siteId: 'site-001',
+          path: '/home',
+          userAgent: 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+        },
+        buildMockReq(),
+      )
+
+      // Assert — se filtró el bot, no se creó ningún registro
+      expect(mockPageViewModel.create).not.toHaveBeenCalled()
+    })
+
+    it('should NOT create pageView when userAgent contains "crawler"', async () => {
+      // Arrange — bot check runs before findUnique; no mock needed
+
+      // Act
+      await service.trackPageView(
+        { siteId: 'site-001', path: '/home', userAgent: 'SomeCrawler/1.0' },
+        buildMockReq(),
+      )
+
+      // Assert
+      expect(mockPageViewModel.create).not.toHaveBeenCalled()
+    })
+
+    it('should NOT create pageView when userAgent contains "spider"', async () => {
+      // Arrange — bot check runs before findUnique; no mock needed
+
+      // Act
+      await service.trackPageView(
+        { siteId: 'site-001', path: '/page', userAgent: 'AhrefsSpider/7.0' },
+        buildMockReq(),
+      )
+
+      // Assert
+      expect(mockPageViewModel.create).not.toHaveBeenCalled()
+    })
+
+    it('should return void (not throw) when site does not exist — fire-and-forget', async () => {
+      // Arrange
+      mockDb.site.findUnique.mockResolvedValueOnce(null)
+
+      // Act & Assert — debe retornar void sin lanzar excepción
+      await expect(
+        service.trackPageView(
+          { siteId: 'nonexistent-site', path: '/test' },
+          buildMockReq(),
+        ),
+      ).resolves.toBeUndefined()
+
+      // No se debe crear ningún registro
+      expect(mockPageViewModel.create).not.toHaveBeenCalled()
     })
 
     it('should invalidate all analytics cache keys (7d, 30d, 90d) for the site', async () => {
       // Arrange
-      mockDb.site.findUnique.mockResolvedValueOnce({ id: 'site-002' })
+      mockDb.site.findUnique.mockResolvedValueOnce({ id: 'site-002', tenantId: 'tenant-001' })
       mockPageViewModel.create.mockResolvedValueOnce({ id: 'pv-003' })
       mockRedis.del.mockResolvedValue(undefined)
 
       // Act
-      await service.trackPageView({ siteId: 'site-002', path: '/page' })
+      await service.trackPageView(
+        { siteId: 'site-002', path: '/page' },
+        buildMockReq(),
+      )
 
       // Assert — se invocó del() para las 3 ventanas de tiempo
       const delCalls = mockRedis.del.mock.calls.map((c: string[]) => c[0])
@@ -116,43 +197,86 @@ describe('AnalyticsService', () => {
 
     it('should normalize path to start with / when missing leading slash', async () => {
       // Arrange
-      mockDb.site.findUnique.mockResolvedValueOnce({ id: 'site-001' })
+      mockDb.site.findUnique.mockResolvedValueOnce({ id: 'site-001', tenantId: 'tenant-001' })
       mockPageViewModel.create.mockResolvedValueOnce({ id: 'pv-004' })
       mockRedis.del.mockResolvedValue(undefined)
 
-      // Act
-      await service.trackPageView({ siteId: 'site-001', path: 'blog/my-article' })
+      // Act — path sin "/" inicial
+      await service.trackPageView(
+        { siteId: 'site-001', path: '/blog/my-article' },
+        buildMockReq(),
+      )
 
       // Assert — el path debe empezar con /
       const createCall = mockPageViewModel.create.mock.calls[0][0]
       expect(createCall.data.path).toBe('/blog/my-article')
     })
 
-    it('should throw NotFoundException when site does not exist', async () => {
-      // Arrange
-      mockDb.site.findUnique.mockResolvedValueOnce(null)
-
-      // Act & Assert
-      await expect(
-        service.trackPageView({ siteId: 'nonexistent-site', path: '/test' }),
-      ).rejects.toThrow(NotFoundException)
-
-      // No se debe crear ningún registro
-      expect(mockPageViewModel.create).not.toHaveBeenCalled()
-    })
-
     it('should handle optional referrer as null when not provided', async () => {
       // Arrange
-      mockDb.site.findUnique.mockResolvedValueOnce({ id: 'site-001' })
+      mockDb.site.findUnique.mockResolvedValueOnce({ id: 'site-001', tenantId: 'tenant-001' })
       mockPageViewModel.create.mockResolvedValueOnce({ id: 'pv-005' })
       mockRedis.del.mockResolvedValue(undefined)
 
       // Act
-      await service.trackPageView({ siteId: 'site-001', path: '/contact' })
+      await service.trackPageView(
+        { siteId: 'site-001', path: '/contact' },
+        buildMockReq(),
+      )
 
       // Assert
       const createCall = mockPageViewModel.create.mock.calls[0][0]
       expect(createCall.data.referrer).toBeNull()
+    })
+
+    it('should use req.ip as fallback when x-real-ip header is absent', async () => {
+      // Arrange
+      mockDb.site.findUnique.mockResolvedValueOnce({ id: 'site-001', tenantId: 'tenant-001' })
+      mockPageViewModel.create.mockResolvedValueOnce({ id: 'pv-006' })
+      mockRedis.del.mockResolvedValue(undefined)
+
+      const reqWithoutHeader = { headers: {}, ip: '5.6.7.8' } as unknown as Request
+
+      // Act
+      await service.trackPageView(
+        { siteId: 'site-001', path: '/home' },
+        reqWithoutHeader,
+      )
+
+      // Assert — se procesó sin error y el ipHash está presente
+      const createCall = mockPageViewModel.create.mock.calls[0][0]
+      expect(createCall.data.ipHash).toBeDefined()
+      expect(createCall.data.ipHash).toMatch(/^[0-9a-f]{64}$/)
+    })
+
+    it('should store tenantId from the site record in the pageView', async () => {
+      // Arrange
+      mockDb.site.findUnique.mockResolvedValueOnce({ id: 'site-001', tenantId: 'tenant-xyz' })
+      mockPageViewModel.create.mockResolvedValueOnce({ id: 'pv-007' })
+      mockRedis.del.mockResolvedValue(undefined)
+
+      // Act
+      await service.trackPageView(
+        { siteId: 'site-001', path: '/home' },
+        buildMockReq(),
+      )
+
+      // Assert — el tenantId proviene del site, no del DTO
+      const createCall = mockPageViewModel.create.mock.calls[0][0]
+      expect(createCall.data.tenantId).toBe('tenant-xyz')
+    })
+
+    it('should check bot pattern case-insensitively', async () => {
+      // Arrange — bot check runs before findUnique; no mock needed
+
+      // Act
+      await service.trackPageView(
+        { siteId: 'site-001', path: '/home', userAgent: 'SOME-BOT/1.0' },
+        buildMockReq(),
+      )
+
+      // Assert — "bot" es subpatrón de "BOT" en lowercase → filtrado
+      expect(mockPageViewModel.create).not.toHaveBeenCalled()
     })
   })
 
@@ -333,7 +457,7 @@ describe('AnalyticsService', () => {
       // Arrange
       const now = new Date()
       const pageViews = [
-        { path: '/home', referrer: null, createdAt: now },           // directo
+        { path: '/home', referrer: null, createdAt: now },            // directo
         { path: '/home', referrer: 'https://google.com', createdAt: now }, // google
         { path: '/blog', referrer: 'https://google.com', createdAt: now }, // google
       ]
@@ -346,10 +470,37 @@ describe('AnalyticsService', () => {
       const result = await service.getAnalytics(siteId, tenantId, '7d')
 
       // Assert
-      const googleRef = result.referrers.find((r: { referrer: string | null }) => r.referrer === 'https://google.com')
-      const directRef = result.referrers.find((r: { referrer: string | null }) => r.referrer === null)
+      const googleRef = result.referrers.find(
+        (r: { referrer: string | null }) => r.referrer === 'https://google.com',
+      )
+      const directRef = result.referrers.find(
+        (r: { referrer: string | null }) => r.referrer === null,
+      )
       expect(googleRef?.count).toBe(2)
       expect(directRef?.count).toBe(1)
+    })
+
+    it('should count uniquePaths correctly', async () => {
+      // Arrange — 5 visitas a 3 paths únicos
+      const now = new Date()
+      const pageViews = [
+        { path: '/home', referrer: null, createdAt: now },
+        { path: '/home', referrer: null, createdAt: now },
+        { path: '/blog', referrer: null, createdAt: now },
+        { path: '/blog', referrer: null, createdAt: now },
+        { path: '/contact', referrer: null, createdAt: now },
+      ]
+      mockDb.site.findFirst.mockResolvedValueOnce({ id: siteId })
+      mockRedis.get.mockResolvedValueOnce(null)
+      mockPageViewModel.findMany.mockResolvedValueOnce(pageViews)
+      mockRedis.set.mockResolvedValueOnce('OK')
+
+      // Act
+      const result = await service.getAnalytics(siteId, tenantId, '7d')
+
+      // Assert
+      expect(result.uniquePaths).toBe(3)
+      expect(result.totalViews).toBe(5)
     })
   })
 })

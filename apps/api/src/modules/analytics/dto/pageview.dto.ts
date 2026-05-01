@@ -7,6 +7,16 @@ export class CreatePageViewDto {
   @IsNotEmpty()
   siteId: string
 
+  @ApiPropertyOptional({ description: 'ID de la página (opcional)' })
+  @IsOptional()
+  @IsString()
+  pageId?: string
+
+  @ApiPropertyOptional({ description: 'ID del tenant (opcional, se resuelve desde siteId)' })
+  @IsOptional()
+  @IsString()
+  tenantId?: string
+
   @ApiProperty({ description: 'Path de la página visitada', example: '/blog/mi-articulo' })
   @IsString()
   @IsNotEmpty()

@@ -60,6 +60,41 @@ export class SitesService {
         })
       }
 
+      // SEC: normalizar template.content a un array plano de bloques.
+      // Los templates de Sprint 04 tienen forma { pages: [{ content: [...] }] }
+      // mientras que los antiguos son directamente un array de bloques.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let templateBlocks: any[]
+      try {
+        const raw = template.content as unknown
+        if (Array.isArray(raw)) {
+          // Formato legacy: array de bloques directamente
+          templateBlocks = raw
+        } else if (
+          raw !== null &&
+          typeof raw === 'object' &&
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          Array.isArray((raw as any).pages) &&
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (raw as any).pages.length > 0
+        ) {
+          // Formato Sprint 04: { pages: [{ content: [...] }] }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          templateBlocks = (raw as any).pages[0].content ?? []
+        } else {
+          this.logger.warn(
+            `Template con estructura desconocida: templateId=${dto.templateId} — usando página en blanco`,
+          )
+          templateBlocks = []
+        }
+      } catch (err) {
+        this.logger.error(
+          `Error al parsear template.content: templateId=${dto.templateId}`,
+          err,
+        )
+        templateBlocks = []
+      }
+
       // Crear sitio + homepage con contenido del template + incrementar usageCount
       // Usamos $transaction interactivo para poder pasar el siteId a la página
       const site = await this.db.$transaction(async (tx) => {
@@ -83,7 +118,7 @@ export class SitesService {
             isHomepage: true,
             status: 'DRAFT',
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            content: template.content as any,
+            content: templateBlocks as any,
           },
         })
 

@@ -8,7 +8,9 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Req,
 } from '@nestjs/common'
+import type { Request } from 'express'
 import { Throttle } from '@nestjs/throttler'
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam, ApiResponse } from '@nestjs/swagger'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
@@ -44,8 +46,9 @@ export class AnalyticsController {
   @ApiResponse({ status: 204, description: 'Visita registrada' })
   @ApiResponse({ status: 404, description: 'Sitio no encontrado' })
   @ApiResponse({ status: 429, description: 'Rate limit superado' })
-  async trackPageView(@Body() dto: CreatePageViewDto): Promise<void> {
-    await this.analyticsService.trackPageView(dto)
+  async trackPageView(@Body() dto: CreatePageViewDto, @Req() req: Request): Promise<void> {
+    // fire-and-forget — retorna 204 inmediatamente, no bloquear la respuesta al renderer
+    this.analyticsService.trackPageView(dto, req).catch(() => {})
   }
 
   // ── GET /sites/:siteId/analytics ─────────────────────────────────────────

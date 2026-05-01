@@ -2,7 +2,6 @@ import { headers, draftMode } from 'next/headers'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { BlockRenderer, type Block } from '../_components/BlockRenderer'
-import { PageViewTracker } from '../_components/PageViewTracker'
 
 // ── Tipos de la API ────────────────────────────────────────────────────────────
 
@@ -35,6 +34,34 @@ interface PageContent {
 // ── Helpers de fetch ───────────────────────────────────────────────────────────
 
 const API_BASE = process.env.API_INTERNAL_URL ?? 'http://localhost:3001'
+
+// ── Analytics Server-Side Tracking ─────────────────────────────────────────────
+
+function trackPageView(params: {
+  tenantId?: string
+  siteId: string
+  pageId?: string
+  path: string
+}) {
+  const hdrs = headers()
+  const ip = hdrs.get('x-real-ip') || hdrs.get('x-forwarded-for') || '0.0.0.0'
+
+  fetch(`${API_BASE}/api/v1/analytics/pageview`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Real-IP': ip,
+    },
+    body: JSON.stringify({
+      tenantId: params.tenantId,
+      siteId: params.siteId,
+      pageId: params.pageId,
+      path: params.path,
+      referrer: hdrs.get('referer') || undefined,
+      userAgent: hdrs.get('user-agent') || undefined,
+    }),
+  }).catch(() => {})
+}
 
 /**
  * Obtiene el tenantSlug de los headers internos.
@@ -420,6 +447,16 @@ export default async function TenantPage({
   // La ruta actual para analytics (ej: "/" o "/sobre-nosotros")
   const currentPath = pageSlug ? `/${pageSlug}` : '/'
 
+  // Server-side analytics — fire-and-forget, sin await para no bloquear la respuesta
+  if (!isDraft) {
+    trackPageView({
+      tenantId: (site as SiteInfo & { tenantId?: string }).tenantId,
+      siteId: site.id,
+      pageId: page.id,
+      path: currentPath,
+    })
+  }
+
   // Si el contenido ya tiene NavbarBlock o FooterBlock no duplicamos los wrappers
   const hasNavbarBlock = page.content.some(b => b.type === 'NavbarBlock')
   const hasFooterBlock = page.content.some(b => b.type === 'FooterBlock')
@@ -452,11 +489,6 @@ export default async function TenantPage({
       )}
 
       {isDraft && <DraftBanner />}
-
-      {/* Analytics — client-side para capturar referrer y no bloquear ISR */}
-      {!isDraft && (
-        <PageViewTracker siteId={site.id} path={currentPath} />
-      )}
     </>
   )
 }

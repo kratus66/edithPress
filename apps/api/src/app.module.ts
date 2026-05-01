@@ -20,6 +20,7 @@ import { AdminModule } from './modules/admin/admin.module'
 import { CustomDomainsModule } from './modules/custom-domains/custom-domains.module'
 import { AnalyticsModule } from './modules/analytics/analytics.module'
 import { NewsletterModule } from './modules/newsletter/newsletter.module'
+import { DomainsModule } from './modules/domains/domains.module'
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { NewsletterModule } from './modules/newsletter/newsletter.module'
     CustomDomainsModule,
     AnalyticsModule,
     NewsletterModule,
+    DomainsModule,
   ],
   providers: [
     // ThrottlerGuard aplicado globalmente a todos los endpoints

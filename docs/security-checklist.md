@@ -56,4 +56,13 @@ Revisión obligatoria en cada release.
 
 ---
 
-*Última actualización: 2026-04-13 — Security Engineer*
+## Sprint 04 — Superficies de ataque nuevas verificadas (2026-04-30)
+
+| Módulo | Verificación | Estado |
+|--------|-------------|--------|
+| Analytics (`/analytics/pageview`) | Rate limit 10/min, 204 sin body, ip hash con IP_SALT, truncado de ua/path/referrer a 500 chars, fire-and-forget | OK |
+| Domains (`/domains/verify`) | @IsFQDN en DTO, solo dns.resolveCname() (sin fetch), mensajes de error hardcodeados, isPrivateIP() en resolve4 post-CNAME | OK — fix aplicado |
+| Templates (`sites.service.ts`) | Normalización de template.content: array legacy vs. `{pages:[]}` Sprint 04, try/catch alrededor del parse | OK — fix aplicado |
+| BlockRenderer (renderer) | Switch exhaustivo con `default: return null` en producción | OK |
+
+*Última actualización: 2026-04-30 — Security Engineer (Sprint 04 audit)*

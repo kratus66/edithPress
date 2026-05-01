@@ -112,6 +112,7 @@ services:
       APP_URL: ${APP_URL}
       API_URL: ${API_URL}
       RENDERER_SECRET: ${RENDERER_SECRET}
+      IP_SALT: ${IP_SALT}
     networks:
       - internal
     healthcheck:

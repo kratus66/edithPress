@@ -115,6 +115,7 @@ jobs:
           JWT_SECRET: ci_test_secret_min_64_chars_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
           JWT_REFRESH_SECRET: ci_test_refresh_secret_min_64_chars_aaaaaaaaaaaaaaaaaaaaaa
           NODE_ENV: test
+          IP_SALT: ${{ secrets.IP_SALT }}
 
       - name: Run integration tests (e2e with mocked DB)
         run: cd apps/api && pnpm test:e2e
@@ -124,6 +125,7 @@ jobs:
           JWT_SECRET: ci_test_secret_min_64_chars_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
           JWT_REFRESH_SECRET: ci_test_refresh_secret_min_64_chars_aaaaaaaaaaaaaaaaaaaaaa
           NODE_ENV: test
+          IP_SALT: ${{ secrets.IP_SALT }}
 
   # ──────────────────────────────────────────────
   # Job 3 — Build (verifies production build works)
@@ -183,7 +185,7 @@ jobs:
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
           port: ${{ secrets.STAGING_PORT || 22 }}
-          envs: RENDERER_SECRET,NEXT_PUBLIC_RENDERER_SECRET
+          envs: RENDERER_SECRET,NEXT_PUBLIC_RENDERER_SECRET,IP_SALT
           script: |
             set -e
             cd /opt/edithpress
@@ -200,9 +202,16 @@ jobs:
                 sed -i "s|^NEXT_PUBLIC_RENDERER_SECRET=.*|NEXT_PUBLIC_RENDERER_SECRET=${NEXT_PUBLIC_RENDERER_SECRET}|" .env || \
                 echo "NEXT_PUBLIC_RENDERER_SECRET=${NEXT_PUBLIC_RENDERER_SECRET}" >> .env
             fi
+            # Inject Sprint 04 secrets into .env
+            if [ -n "${IP_SALT:-}" ]; then
+              grep -q '^IP_SALT=' .env && \
+                sed -i "s|^IP_SALT=.*|IP_SALT=${IP_SALT}|" .env || \
+                echo "IP_SALT=${IP_SALT}" >> .env
+            fi
             echo "==> Running deploy script..."
             bash scripts/deploy-staging.sh
             echo "==> Deploy finished at $(date)"
         env:
           RENDERER_SECRET: ${{ secrets.RENDERER_SECRET }}
           NEXT_PUBLIC_RENDERER_SECRET: ${{ secrets.NEXT_PUBLIC_RENDERER_SECRET }}
+          IP_SALT: ${{ secrets.IP_SALT }}

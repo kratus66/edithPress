@@ -420,6 +420,181 @@ describe('BillingService', () => {
     })
   })
 
+  // ─────────────────────────────────────── mapStripeStatus (via webhook) ──
+  //
+  // La función mapStripeStatus() es privada pero se ejercita indirectamente
+  // a través de handleWebhook() → onSubscriptionCreated/Updated.
+  // Cubrimos los status de Stripe menos comunes para aumentar branch coverage.
+  //
+
+  describe('handleWebhook() — mapStripeStatus coverage', () => {
+    const rawBody = Buffer.from(JSON.stringify({ type: 'test.event' }))
+    const signature = 'test-stripe-signature'
+
+    const stripeStatuses: Array<{ stripe: string; expected: string }> = [
+      { stripe: 'trialing', expected: 'TRIALING' },
+      { stripe: 'incomplete', expected: 'INCOMPLETE' },
+      { stripe: 'incomplete_expired', expected: 'CANCELED' },
+      { stripe: 'unpaid', expected: 'PAST_DUE' },
+      { stripe: 'paused', expected: 'PAST_DUE' },
+    ]
+
+    for (const { stripe, expected } of stripeStatuses) {
+      it(`should map Stripe status "${stripe}" to DB status "${expected}"`, async () => {
+        // Arrange
+        const subscription = buildStripeSubscription('sub_status_test', stripe, 'tenant-status', 'plan-x')
+        mockWebhooksConstructEvent.mockReturnValueOnce({
+          type: 'customer.subscription.created',
+          id: `evt_status_${stripe}`,
+          data: { object: subscription },
+        })
+        mockDb.subscription.upsert.mockResolvedValueOnce({})
+        mockDb.tenant.update.mockResolvedValueOnce({})
+
+        // Act
+        const result = await service.handleWebhook(rawBody, signature)
+
+        // Assert
+        expect(result).toEqual({ received: true })
+        expect(mockDb.subscription.upsert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            create: expect.objectContaining({ status: expected }),
+            update: expect.objectContaining({ status: expected }),
+          }),
+        )
+      })
+    }
+
+    it('should map unknown Stripe status to INCOMPLETE (default fallback)', async () => {
+      // Arrange
+      const subscription = buildStripeSubscription('sub_unknown_status', 'some_future_status', 'tenant-unk', 'plan-x')
+      mockWebhooksConstructEvent.mockReturnValueOnce({
+        type: 'customer.subscription.created',
+        id: 'evt_unknown_status',
+        data: { object: subscription },
+      })
+      mockDb.subscription.upsert.mockResolvedValueOnce({})
+      mockDb.tenant.update.mockResolvedValueOnce({})
+
+      // Act
+      const result = await service.handleWebhook(rawBody, signature)
+
+      // Assert — el default ?? 'INCOMPLETE' debe aplicarse
+      expect(result).toEqual({ received: true })
+      expect(mockDb.subscription.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ status: 'INCOMPLETE' }),
+        }),
+      )
+    })
+
+    it('should process customer.subscription.deleted and skip tenant downgrade when starter plan not found', async () => {
+      // Arrange — plan starter no existe en la DB
+      const subscription = buildStripeSubscription('sub_del_no_starter', 'canceled', 'tenant-no-starter', 'plan-old')
+      mockWebhooksConstructEvent.mockReturnValueOnce({
+        type: 'customer.subscription.deleted',
+        id: 'evt_del_no_starter',
+        data: { object: subscription },
+      })
+      mockDb.subscription.findUnique.mockResolvedValueOnce({ tenantId: 'tenant-no-starter' })
+      mockDb.plan.findUnique.mockResolvedValueOnce(null) // plan starter no encontrado
+      mockDb.subscription.update.mockResolvedValueOnce({})
+
+      // Act
+      const result = await service.handleWebhook(rawBody, signature)
+
+      // Assert — procesó sin error, actualizó suscripción pero NO el tenant (sin plan starter)
+      expect(result).toEqual({ received: true })
+      expect(mockDb.subscription.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'CANCELED' }),
+        }),
+      )
+      expect(mockDb.tenant.update).not.toHaveBeenCalled()
+    })
+
+    it('should skip customer.subscription.deleted when subscription not found in DB', async () => {
+      // Arrange
+      const subscription = buildStripeSubscription('sub_del_notfound', 'canceled', 'tenant-x', 'plan-x')
+      mockWebhooksConstructEvent.mockReturnValueOnce({
+        type: 'customer.subscription.deleted',
+        id: 'evt_del_notfound',
+        data: { object: subscription },
+      })
+      mockDb.subscription.findUnique.mockResolvedValueOnce(null)
+
+      // Act
+      const result = await service.handleWebhook(rawBody, signature)
+
+      // Assert — retorna 200 sin procesar
+      expect(result).toEqual({ received: true })
+      expect(mockDb.subscription.update).not.toHaveBeenCalled()
+    })
+
+    it('should skip invoice.payment_succeeded when subscription not found in DB', async () => {
+      // Arrange
+      const invoice = buildStripeInvoice('inv_no_sub_record', 'sub_missing', 'paid', 1000)
+      mockWebhooksConstructEvent.mockReturnValueOnce({
+        type: 'invoice.payment_succeeded',
+        id: 'evt_no_sub_record',
+        data: { object: invoice },
+      })
+      mockDb.subscription.findUnique.mockResolvedValueOnce(null)
+
+      // Act
+      const result = await service.handleWebhook(rawBody, signature)
+
+      // Assert
+      expect(result).toEqual({ received: true })
+      expect(mockDb.invoice.create).not.toHaveBeenCalled()
+    })
+
+    it('should update subscription status only (no tenant update) when subscription.updated has no planId in metadata', async () => {
+      // Arrange — metadata sin planId → la rama `if (planId)` no se ejecuta
+      const subscription = {
+        ...buildStripeSubscription('sub_no_plan', 'past_due', 'tenant-2', ''),
+        metadata: { tenantId: 'tenant-2' }, // planId ausente
+      }
+      mockWebhooksConstructEvent.mockReturnValueOnce({
+        type: 'customer.subscription.updated',
+        id: 'evt_no_plan_meta',
+        data: { object: subscription },
+      })
+      mockDb.subscription.findUnique.mockResolvedValueOnce({ tenantId: 'tenant-2' })
+      mockDb.subscription.update.mockResolvedValueOnce({})
+
+      // Act
+      const result = await service.handleWebhook(rawBody, signature)
+
+      // Assert — actualizó la suscripción pero NO el tenant
+      expect(result).toEqual({ received: true })
+      expect(mockDb.subscription.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'PAST_DUE' }),
+        }),
+      )
+      expect(mockDb.tenant.update).not.toHaveBeenCalled()
+    })
+
+    it('should skip invoice.payment_failed subscription lookup when sub not found in DB', async () => {
+      // Arrange — la factura tiene subscription pero ésta no está en nuestra DB
+      const invoice = buildStripeInvoice('inv_fail_no_sub', 'sub_not_in_db', 'open', 500)
+      mockWebhooksConstructEvent.mockReturnValueOnce({
+        type: 'invoice.payment_failed',
+        id: 'evt_fail_no_sub',
+        data: { object: invoice },
+      })
+      mockDb.subscription.findUnique.mockResolvedValueOnce(null)
+
+      // Act
+      const result = await service.handleWebhook(rawBody, signature)
+
+      // Assert
+      expect(result).toEqual({ received: true })
+      expect(mockDb.invoice.create).not.toHaveBeenCalled()
+    })
+  })
+
   // ─────────────────────────────────────── getPlans() ──
 
   describe('getPlans()', () => {

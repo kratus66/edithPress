@@ -302,3 +302,40 @@ Permissions-Policy: camera=(), microphone=(), geolocation=()
 - Recomendaciones para sprints futuros: honeypot, CSP para imágenes, token criptográfico unsubscribe
 
 **Estado**: SEC actualizado a FASE 3.1
+
+---
+
+## Sprint 04 — Actividades Realizadas (2026-04-30)
+
+### SEC-SPRINT04-01: Auditoría Analytics Endpoint
+- Rate limiting verificado: `@Throttle({ default: { limit: 10, ttl: 60_000 } })` presente en controller
+- 204 sin body confirmado: `@HttpCode(HttpStatus.NO_CONTENT)`
+- Fire-and-forget confirmado: `.catch(() => {})` sin await
+- Truncados verificados en servicio: ua/path/referrer todos a 500 chars
+- GAP mitigado: advertencia en constructor cuando `IP_SALT` está vacío o ausente
+- Estado: PASS (gap de configuración documentado, warning en runtime)
+
+### SEC-SPRINT04-02: Auditoría Custom Domains — SSRF + IP privadas
+- @IsFQDN en DTO verificado — presente
+- Solo dns.resolveCname() confirmado — sin fetch() al dominio del usuario
+- Mensajes de error al cliente: strings hardcodeados, nunca `err.message`
+- FIX aplicado: helper `isPrivateIP()` + `dns.resolve4()` post-CNAME
+  - Cubre RFC-1918, loopback (127.0.0.0/8), link-local (169.254.0.0/16), IPv6 `::1`
+  - Si resolve4 falla (solo IPv6): se acepta (vector SSRF no aplica sin fetch)
+- Estado: MITIGADO
+
+### SEC-SPRINT04-03: Auditoría Templates — Template Injection
+- FIX aplicado en `SitesService.create()`: normalización de template.content
+  - Legacy: array plano de bloques
+  - Sprint 04: `{ pages: [{ content: [] }] }` — extrae pages[0].content
+  - Estructura desconocida: logger.warn + array vacío (fail secure)
+  - Todo rodeado de try/catch con logger.error y fallback a []
+- BlockRenderer verificado: `default: return null` en producción
+- Seed data verificado: ningún campo url/href contiene `javascript:` URIs
+
+### SEC-SPRINT04-04: Documentación
+- Creado `docs/security-audit-sprint04.md` con hallazgos, severidades y decisiones
+- Actualizado `docs/security-checklist.md` con tabla de Sprint 04
+- Build TypeScript: `pnpm build` sin errores tras todos los cambios
+
+**Estado**: SEC actualizado a Sprint 04

@@ -3,10 +3,14 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common'
+import { createHash } from 'node:crypto'
+import type { Request } from 'express'
 import { DatabaseService } from '../database/database.service'
 import { RedisService } from '../redis/redis.service'
 import type { CreatePageViewDto } from './dto/pageview.dto'
 import type { AnalyticsPeriod } from './dto/analytics-query.dto'
+
+const BOT_PATTERNS = ['bot', 'crawler', 'spider', 'slurp', 'mediapartners']
 
 /** TTL de caché de analytics en Redis (5 minutos) */
 const CACHE_TTL_SECONDS = 300
@@ -25,7 +29,15 @@ export class AnalyticsService {
   constructor(
     private readonly db: DatabaseService,
     private readonly redis: RedisService,
-  ) {}
+  ) {
+    // SEC: IP_SALT vacío produce un hash sin sal — todos los hashes serían
+    // reproducibles con solo la IP. Advertir en startup para forzar la config.
+    if (!process.env['IP_SALT']) {
+      this.logger.warn(
+        'IP_SALT no configurado. Los hashes de IP no tendrán sal — configura IP_SALT en las variables de entorno.',
+      )
+    }
+  }
 
   /**
    * Acceso tipado al modelo PageView.
@@ -47,30 +59,35 @@ export class AnalyticsService {
    * El path se sanea (truncado a 500 chars) antes de guardar.
    * Se verifica que el siteId existe para evitar spam de datos huérfanos.
    */
-  async trackPageView(dto: CreatePageViewDto): Promise<void> {
-    // Verificar que el sitio existe
+  async trackPageView(dto: CreatePageViewDto, req: Request): Promise<void> {
+    // Filtrar bots — no persistir visitas de crawlers
+    const ua = (dto.userAgent ?? '').toLowerCase()
+    if (BOT_PATTERNS.some((p) => ua.includes(p))) return
+
+    // Verificar que el sitio existe y obtener tenantId
     const site = await this.db.site.findUnique({
       where: { id: dto.siteId },
-      select: { id: true },
+      select: { id: true, tenantId: true },
     })
 
-    if (!site) {
-      throw new NotFoundException({
-        code: 'SITE_NOT_FOUND',
-        message: 'Sitio no encontrado',
-      })
-    }
+    if (!site) return // fire-and-forget: no lanzar, solo descartar
+
+    // Generar ipHash — GDPR: nunca guardar la IP real
+    const ip = (req.headers['x-real-ip'] as string | undefined) ?? req.ip ?? 'unknown'
+    const salt = process.env['IP_SALT'] ?? ''
+    const ipHash = createHash('sha256').update(ip + salt).digest('hex')
 
     // Sanitizar path — truncar y asegurar que empieza con /
     const path = (dto.path.startsWith('/') ? dto.path : `/${dto.path}`).slice(0, 500)
 
     await this.pageViewModel.create({
       data: {
+        tenantId: site.tenantId,
         siteId: dto.siteId,
         path,
+        ipHash,
         referrer: dto.referrer?.slice(0, 500) ?? null,
-        userAgent: dto.userAgent?.slice(0, 500) ?? null,
-        // NO guardamos IP (GDPR)
+        userAgent: ua.slice(0, 500) || null,
       },
     })
 

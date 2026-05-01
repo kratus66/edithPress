@@ -91,6 +91,59 @@ bash scripts/deploy-staging.sh --build
 
 ---
 
+## Staging Railway — Sprint 04
+
+### Variables nuevas a configurar en Railway
+
+Acceder a cada servicio en el dashboard de Railway (`railway.app → proyecto EdithPress → Environment: staging`).
+
+**Servicio `api`** — agregar la siguiente variable:
+
+| Variable | Valor | Cómo generarla |
+|----------|-------|----------------|
+| `IP_SALT` | `<hex aleatorio>` | `openssl rand -hex 32` |
+
+> Esta variable se usa para hashear IPs en el módulo de analytics (GDPR).
+> Nunca rotar este valor en producción sin avisar al equipo — rompe los conteos históricos de visitantes únicos.
+
+**Servicio `renderer`** — agregar la siguiente variable:
+
+| Variable | Valor |
+|----------|-------|
+| `API_INTERNAL_URL` | `http://api:3001` |
+
+> Esta es la URL interna del servicio `api` dentro de la red privada de Railway.
+> No usar la URL pública (`https://api.staging.edithpress.com`) para comunicación server-to-server — añade latencia innecesaria y sale de la red privada.
+
+### Aplicar migrations en staging
+
+Ejecutar después de cada deploy que incluya cambios de schema:
+
+```bash
+railway run --service api pnpm --filter @edithpress/database exec prisma migrate deploy
+railway run --service api pnpm db:seed
+```
+
+### Smoke tests post-deploy
+
+Verificar manualmente (o con curl) que los endpoints clave responden correctamente:
+
+```bash
+# 1. Health check de la API
+curl -s https://api.staging.edithpress.com/api/v1/health
+# Respuesta esperada: { "status": "ok" }
+
+# 2. Lista de templates (endpoint público)
+curl -s https://api.staging.edithpress.com/api/v1/templates
+# Respuesta esperada: array JSON de templates (puede estar vacío si no hay seed)
+
+# 3. Pantalla de login del admin panel
+curl -sI https://admin.staging.edithpress.com/login
+# Respuesta esperada: HTTP 200
+```
+
+---
+
 ## Secrets requeridos en GitHub Actions
 
 Configurar en: `Settings → Environments → staging → Secrets`
@@ -101,6 +154,9 @@ Configurar en: `Settings → Environments → staging → Secrets`
 | `STAGING_USER` | Usuario SSH (ej: `ubuntu`) |
 | `STAGING_SSH_KEY` | Clave privada SSH (contenido del archivo `~/.ssh/id_rsa`) |
 | `STAGING_PORT` | Puerto SSH (opcional, default: 22) |
+| `RENDERER_SECRET` | Shared secret entre builder y renderer (32 bytes hex) |
+| `NEXT_PUBLIC_RENDERER_SECRET` | Mismo valor que `RENDERER_SECRET` (expuesto al browser) |
+| `IP_SALT` | Salt para hashear IPs en analytics — `openssl rand -hex 32` |
 
 ---
 
