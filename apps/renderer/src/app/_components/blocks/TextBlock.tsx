@@ -1,16 +1,13 @@
-/**
- * TextBlock — Renderer (read-only)
- *
- * Props idénticas al builder (apps/builder/src/blocks/TextBlock.tsx).
- *
- * SEGURIDAD: el HTML viene del CMS, escrito por el propietario del sitio.
- * La API debe sanitizarlo antes de almacenarlo (DOMPurify o equivalente).
- * El renderer confía en que la API entrega contenido limpio.
- */
 export interface TextBlockProps {
   content: string
   fontSize: 'sm' | 'base' | 'lg' | 'xl'
+  fontWeight: 'light' | 'regular' | 'medium' | 'semibold' | 'bold'
+  textAlign: 'left' | 'center' | 'right'
+  lineHeight: 'tight' | 'normal' | 'relaxed' | 'loose' | 'xloose'
+  letterSpacing: 'tight' | 'normal' | 'wide' | 'wider' | 'widest'
   textColor: string
+  backgroundColor: string
+  fontFamily: string
   padding: 'none' | 'sm' | 'md' | 'lg'
   maxWidth: 'narrow' | 'normal' | 'wide' | 'full'
 }
@@ -22,6 +19,30 @@ const fontSizeMap: Record<TextBlockProps['fontSize'], string> = {
   xl: '1.25rem',
 }
 
+const fontWeightMap: Record<TextBlockProps['fontWeight'], number> = {
+  light: 300,
+  regular: 400,
+  medium: 500,
+  semibold: 600,
+  bold: 700,
+}
+
+const lineHeightMap: Record<TextBlockProps['lineHeight'], number> = {
+  tight: 1.2,
+  normal: 1.5,
+  relaxed: 1.8,
+  loose: 2.2,
+  xloose: 2.8,
+}
+
+const letterSpacingMap: Record<TextBlockProps['letterSpacing'], string> = {
+  tight: '-0.02em',
+  normal: '0',
+  wide: '0.05em',
+  wider: '0.1em',
+  widest: '0.18em',
+}
+
 const paddingMap: Record<TextBlockProps['padding'], string> = {
   none: '0',
   sm: '16px 24px',
@@ -30,26 +51,43 @@ const paddingMap: Record<TextBlockProps['padding'], string> = {
 }
 
 const maxWidthMap: Record<TextBlockProps['maxWidth'], string> = {
-  narrow: '600px',
-  normal: '800px',
-  wide: '1100px',
+  narrow: '480px',
+  normal: '720px',
+  wide: '1040px',
   full: '100%',
 }
 
-export function TextBlock({ content, fontSize, textColor, padding, maxWidth }: TextBlockProps) {
+export function TextBlock({
+  content,
+  fontSize,
+  fontWeight,
+  textAlign,
+  lineHeight,
+  letterSpacing,
+  textColor,
+  backgroundColor,
+  fontFamily,
+  padding,
+  maxWidth,
+}: TextBlockProps) {
   return (
     <div
       style={{
-        padding: paddingMap[padding],
-        color: textColor,
+        padding: paddingMap[padding ?? 'md'],
+        backgroundColor: backgroundColor ?? 'transparent',
+        fontFamily: fontFamily ?? 'inherit',
       }}
     >
       <div
         style={{
-          maxWidth: maxWidthMap[maxWidth],
+          maxWidth: maxWidthMap[maxWidth ?? 'normal'],
           margin: '0 auto',
-          fontSize: fontSizeMap[fontSize],
-          lineHeight: 1.7,
+          fontSize: fontSizeMap[fontSize ?? 'base'],
+          fontWeight: fontWeightMap[fontWeight ?? 'regular'],
+          textAlign: textAlign ?? 'left',
+          lineHeight: lineHeightMap[lineHeight ?? 'normal'],
+          letterSpacing: letterSpacingMap[letterSpacing ?? 'normal'],
+          color: textColor ?? 'inherit',
         }}
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: content }}

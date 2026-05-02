@@ -1,4 +1,5 @@
-# UX Audit — Sprint 04
+
+.# UX Audit — Sprint 04
 **Fecha:** 2026-04-27  
 **Auditor:** Agente 12 — UX Designer  
 **Alcance:** apps/admin, apps/builder, apps/renderer, packages/ui

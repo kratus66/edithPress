@@ -1,14 +1,48 @@
-/**
- * ProductGridBlock — Renderer (read-only)
- *
- * Sprint 03.2: añadido soporte para eyebrowText, viewAllText/viewAllUrl,
- * categoryPosition ('above-name'), showCta.
- * Usa next/image para las imágenes de productos.
- * Todos los hrefs pasan por sanitizeUrl().
- * Reemplaza la versión anterior que usaba Tailwind — ahora 100% inline styles.
- */
 import Image from 'next/image'
 import { sanitizeUrl } from '../../../lib/sanitize-url'
+
+// ─── Typography interfaces (keep in sync with builder) ───────────────────────
+
+interface TypographyStyle {
+  color: string
+  fontFamily: string
+  fontSize: string
+  fontWeight: string
+  lineHeight: string
+  letterSpacing: string
+  textAlign: string
+}
+
+interface HeaderTypography {
+  eyebrow: TypographyStyle
+  title: TypographyStyle
+  subtitle: TypographyStyle
+}
+
+interface CardTypography {
+  name: TypographyStyle
+  description: TypographyStyle
+  price: TypographyStyle
+  artisan: TypographyStyle
+  category: TypographyStyle
+}
+
+export interface ViewAllStyle {
+  color: string
+  backgroundColor: string
+  borderColor: string
+  fontSize: string
+  fontWeight: string
+  borderRadius: string
+}
+
+export interface EyebrowStyle {
+  color: string
+  fontSize: string
+  fontWeight: string
+  letterSpacing: string
+  textAlign: string
+}
 
 export interface ProductGridBlockProps {
   title: string
@@ -38,12 +72,70 @@ export interface ProductGridBlockProps {
   categoryPosition?: 'badge' | 'above-name'
   showCta?: boolean
   whatsappPhone?: string
+  headerTypography?: HeaderTypography
+  cardTypography?: CardTypography
+  viewAllStyle?: ViewAllStyle
+  eyebrowStyle?: EyebrowStyle
 }
+
+// ─── CSS value maps ───────────────────────────────────────────────────────────
+
+const fontSizeCSS: Record<string, string> = {
+  xs: '0.75rem',
+  sm: '0.875rem',
+  base: '1rem',
+  lg: '1.125rem',
+  xl: '1.25rem',
+  '2xl': '1.5rem',
+  '3xl': '2rem',
+}
+const fontWeightCSS: Record<string, number> = {
+  light: 300, regular: 400, medium: 500, semibold: 600, bold: 700,
+}
+const lineHeightCSS: Record<string, number> = {
+  tight: 1.2, normal: 1.5, relaxed: 1.8, loose: 2.2,
+}
+const letterSpacingCSS: Record<string, string> = {
+  tight: '-0.02em', normal: '0', wide: '0.05em', wider: '0.1em', widest: '0.18em',
+}
+
+function typoCSS(t: Partial<TypographyStyle> | undefined, fallback: React.CSSProperties = {}): React.CSSProperties {
+  if (!t) return fallback
+  return {
+    ...fallback,
+    ...(t.color ? { color: t.color } : {}),
+    ...(t.fontFamily && t.fontFamily !== 'inherit' ? { fontFamily: t.fontFamily } : {}),
+    ...(t.fontSize && fontSizeCSS[t.fontSize] ? { fontSize: fontSizeCSS[t.fontSize] } : {}),
+    ...(t.fontWeight && fontWeightCSS[t.fontWeight] !== undefined ? { fontWeight: fontWeightCSS[t.fontWeight] } : {}),
+    ...(t.lineHeight && lineHeightCSS[t.lineHeight] ? { lineHeight: lineHeightCSS[t.lineHeight] } : {}),
+    ...(t.letterSpacing && letterSpacingCSS[t.letterSpacing] ? { letterSpacing: letterSpacingCSS[t.letterSpacing] } : {}),
+    ...(t.textAlign && t.textAlign !== 'inherit' ? { textAlign: t.textAlign as React.CSSProperties['textAlign'] } : {}),
+  }
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const cardStyleMap: Record<ProductGridBlockProps['cardStyle'], React.CSSProperties> = {
   shadow: { boxShadow: '0 2px 12px rgba(0,0,0,.08)' },
   border: { border: '1px solid #e2e8f0' },
   minimal: {},
+}
+
+const defaultViewAllStyle: ViewAllStyle = {
+  color: '',
+  backgroundColor: 'transparent',
+  borderColor: '#d1d5db',
+  fontSize: 'sm',
+  fontWeight: 'medium',
+  borderRadius: '6px',
+}
+
+const defaultEyebrowStyle: EyebrowStyle = {
+  color: '',
+  fontSize: 'xs',
+  fontWeight: 'bold',
+  letterSpacing: 'wider',
+  textAlign: 'inherit',
 }
 
 function buildWhatsAppUrl(phone: string, productName: string, price: string): string {
@@ -68,8 +160,27 @@ export function ProductGridBlock({
   categoryPosition = 'badge',
   showCta = true,
   whatsappPhone = '',
+  headerTypography,
+  cardTypography,
+  viewAllStyle,
+  eyebrowStyle,
 }: ProductGridBlockProps) {
   if (!products?.length) return null
+
+  const ht = headerTypography
+  const ct = cardTypography
+
+  const vas = { ...defaultViewAllStyle, ...(viewAllStyle ?? {}) }
+  const eas = { ...defaultEyebrowStyle, ...(eyebrowStyle ?? {}) }
+
+  // Resolved eyebrowStyle as partial TypographyStyle for typoCSS merging
+  const eyebrowStyleResolved: Partial<TypographyStyle> = {
+    ...(eas.color ? { color: eas.color } : {}),
+    ...(eas.fontSize ? { fontSize: eas.fontSize } : {}),
+    ...(eas.fontWeight ? { fontWeight: eas.fontWeight } : {}),
+    ...(eas.letterSpacing ? { letterSpacing: eas.letterSpacing } : {}),
+    ...(eas.textAlign ? { textAlign: eas.textAlign } : {}),
+  }
 
   const overlayStyles = `
     .pgb-img-wrapper { position: relative; overflow: hidden; }
@@ -118,70 +229,75 @@ export function ProductGridBlock({
   }
 
   return (
-    <section style={{ backgroundColor, padding: '48px 24px' }}>
+    <section style={{ backgroundColor, padding: 'clamp(48px, 8vw, 80px) clamp(24px, 6vw, 80px)' }}>
       {/* eslint-disable-next-line react/no-danger */}
       <style dangerouslySetInnerHTML={{ __html: overlayStyles }} />
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        {/* Header: eyebrow + title + viewAllText */}
         {eyebrowText && (
-          <p style={{
+          <p style={typoCSS({ ...(ht?.eyebrow ?? {}), ...eyebrowStyleResolved }, {
             color: accentColor,
             fontSize: '0.75rem',
             fontWeight: 700,
             letterSpacing: '0.12em',
             textTransform: 'uppercase',
-            textAlign: 'center',
+            textAlign: (eyebrowStyleResolved.textAlign && eyebrowStyleResolved.textAlign !== 'inherit')
+              ? eyebrowStyleResolved.textAlign as 'left' | 'center' | 'right'
+              : (ht?.eyebrow?.textAlign && ht.eyebrow.textAlign !== 'inherit')
+                ? ht.eyebrow.textAlign as 'left' | 'center' | 'right'
+                : viewAllText ? 'left' : 'center',
             marginBottom: 10,
-          }}>
+          })}>
             {eyebrowText}
           </p>
         )}
 
-        {/* Título con "Ver todos" alineado a la derecha si viewAllText existe */}
         {title && (
           viewAllText ? (
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: subtitle ? 8 : 40, flexWrap: 'wrap', gap: 8 }}>
-              <h2 style={{
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: subtitle ? 8 : 40, flexWrap: 'wrap', gap: 8 }}>
+              <h2 style={typoCSS(ht?.title, {
                 color: textColor,
                 fontSize: 'clamp(1.5rem, 3vw, 2.25rem)',
                 fontWeight: 700,
                 margin: 0,
-              }}>
+              })}>
                 {title}
               </h2>
               <a href={sanitizeUrl(viewAllUrl ?? '#')} style={{
-                color: accentColor,
-                fontWeight: 600,
-                fontSize: '0.95rem',
+                color: vas.color || textColor,
+                fontWeight: fontWeightCSS[vas.fontWeight] ?? 500,
+                fontSize: fontSizeCSS[vas.fontSize] ?? '0.875rem',
                 textDecoration: 'none',
-                borderBottom: `2px solid ${accentColor}`,
-                paddingBottom: 2,
+                border: `1px solid ${vas.borderColor || '#d1d5db'}`,
+                borderRadius: vas.borderRadius || '6px',
+                padding: '8px 18px',
                 whiteSpace: 'nowrap',
+                backgroundColor: vas.backgroundColor || 'transparent',
+                transition: 'border-color 0.2s',
               }}>
                 {viewAllText}
               </a>
             </div>
           ) : (
-            <h2 style={{
+            <h2 style={typoCSS(ht?.title, {
               color: textColor,
               fontSize: 'clamp(1.5rem, 3vw, 2.25rem)',
               fontWeight: 700,
               textAlign: 'center',
               marginBottom: subtitle ? 8 : 40,
-            }}>
+            })}>
               {title}
             </h2>
           )
         )}
 
         {subtitle && (
-          <p style={{
+          <p style={typoCSS(ht?.subtitle, {
             color: textColor,
             opacity: 0.7,
             textAlign: 'center',
             fontSize: '1.05rem',
             marginBottom: 40,
-          }}>
+          })}>
             {subtitle}
           </p>
         )}
@@ -193,7 +309,6 @@ export function ProductGridBlock({
         }}>
           {products.map((product, i) => (
             <div key={i} style={cardBase}>
-              {/* Imagen del producto */}
               <div className="pgb-img-wrapper" style={{ aspectRatio: '4/3', background: '#f1f5f9' }}>
                 <Image
                   src={product.image}
@@ -202,7 +317,6 @@ export function ProductGridBlock({
                   sizes={`(max-width: 640px) 100vw, (max-width: 1024px) 50vw, ${Math.round(100 / columns)}vw`}
                   style={{ objectFit: 'cover' }}
                 />
-                {/* Badge de categoría sobre imagen — solo cuando categoryPosition es 'badge' */}
                 {showCategory && product.category && categoryPosition === 'badge' && (
                   <span style={{
                     position: 'absolute',
@@ -220,37 +334,14 @@ export function ProductGridBlock({
                     {product.category}
                   </span>
                 )}
-                {/* Hover overlay */}
                 <div className="pgb-overlay">
-                  {/* Heart icon */}
                   <button type="button" className="pgb-action-btn" aria-label="Agregar a favoritos">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width={20}
-                      height={20}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
+                    <svg xmlns="http://www.w3.org/2000/svg" width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                     </svg>
                   </button>
-                  {/* Shopping cart icon */}
                   <button type="button" className="pgb-action-btn" aria-label="Agregar al carrito">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width={20}
-                      height={20}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
+                    <svg xmlns="http://www.w3.org/2000/svg" width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                       <circle cx={9} cy={21} r={1} />
                       <circle cx={20} cy={21} r={1} />
                       <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
@@ -259,11 +350,9 @@ export function ProductGridBlock({
                 </div>
               </div>
 
-              {/* Contenido de la tarjeta */}
               <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                {/* Categoría sobre el nombre — small-caps cuando categoryPosition es 'above-name' */}
                 {showCategory && product.category && categoryPosition === 'above-name' && (
-                  <p style={{
+                  <p style={typoCSS(ct?.category, {
                     color: accentColor,
                     fontSize: '0.7rem',
                     fontWeight: 700,
@@ -271,44 +360,48 @@ export function ProductGridBlock({
                     textTransform: 'uppercase',
                     fontVariant: 'small-caps',
                     margin: '0 0 4px',
-                  }}>
+                  })}>
                     {product.category}
                   </p>
                 )}
-                <h3 style={{
+                <h3 style={typoCSS(ct?.name, {
                   color: textColor,
                   fontSize: '1rem',
                   fontWeight: 600,
                   margin: '0 0 6px',
                   lineHeight: 1.3,
-                }}>
+                })}>
                   {product.name}
                 </h3>
                 {product.description && (
-                  <p style={{
+                  <p style={typoCSS(ct?.description, {
                     color: textColor,
                     opacity: 0.65,
                     fontSize: '0.85rem',
                     margin: '0 0 8px',
                     lineHeight: 1.5,
                     flex: 1,
-                  }}>
+                  })}>
                     {product.description}
                   </p>
                 )}
                 {showArtisan && product.artisan && (
-                  <p style={{
+                  <p style={typoCSS(ct?.artisan, {
                     color: textColor,
                     opacity: 0.55,
                     fontSize: '0.8rem',
                     fontStyle: 'italic',
                     margin: '0 0 12px',
-                  }}>
+                  })}>
                     Por {product.artisan}
                   </p>
                 )}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: 12 }}>
-                  <span style={{ color: accentColor, fontWeight: 700, fontSize: '1.1rem' }}>
+                  <span style={typoCSS(ct?.price, {
+                    color: accentColor,
+                    fontWeight: 700,
+                    fontSize: '1.1rem',
+                  })}>
                     {product.price}
                   </span>
                   {showCta && (() => {
@@ -350,16 +443,17 @@ export function ProductGridBlock({
           ))}
         </div>
 
-        {/* Enlace "Ver todos" centrado — solo se muestra cuando NO hay título (fallback) */}
         {viewAllText && !title && (
           <div style={{ textAlign: 'center', marginTop: 40 }}>
             <a href={sanitizeUrl(viewAllUrl ?? '#')} style={{
-              color: accentColor,
-              fontWeight: 600,
-              fontSize: '0.95rem',
+              color: vas.color || accentColor,
+              fontWeight: fontWeightCSS[vas.fontWeight] ?? 600,
+              fontSize: fontSizeCSS[vas.fontSize] ?? '0.95rem',
               textDecoration: 'none',
-              borderBottom: `2px solid ${accentColor}`,
-              paddingBottom: 2,
+              border: `1px solid ${vas.borderColor || '#d1d5db'}`,
+              borderRadius: vas.borderRadius || '6px',
+              padding: '8px 18px',
+              backgroundColor: vas.backgroundColor || 'transparent',
             }}>
               {viewAllText}
             </a>

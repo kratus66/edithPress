@@ -83,8 +83,8 @@ export function CategoryGridBlock({
   const textPosStyle   = textPositionStyleMap[textPosition]
 
   return (
-    <section style={{ backgroundColor, padding: '64px 24px' }}>
-      <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+    <section style={{ backgroundColor, padding: 'clamp(48px, 8vw, 80px) clamp(24px, 6vw, 80px)' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         {eyebrowText && (
           <p style={{
             color: accentColor, fontSize: '0.75rem', fontWeight: 700,

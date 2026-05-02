@@ -74,7 +74,7 @@ export function PayButtonBlock({
       }
 
   return (
-    <section style={{ backgroundColor, padding: '48px 24px' }}>
+    <section style={{ backgroundColor, padding: 'clamp(48px, 8vw, 80px) clamp(24px, 6vw, 80px)' }}>
       <div style={cardStyle}>
         {image && (
           <div style={isBanner

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import {
   AreaChart,
   Area,
@@ -15,24 +15,41 @@ import { api, getApiErrorMessage } from '@/lib/api-client'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface DailyVisit {
-  date: string   // "2026-03-17"
-  visits: number
-  pageViews: number
+interface Site {
+  id: string
+  name: string
 }
 
-interface AnalyticsSummary {
-  visits30d: number
-  pageViews30d: number
-  uniqueVisitors30d: number
-  bounceRate: number       // porcentaje 0–100
-  dailyData: DailyVisit[]
+interface TopPage {
+  path: string
+  views: number
+  percentage: number
 }
+
+interface ViewByDay {
+  date: string   // "YYYY-MM-DD"
+  views: number
+}
+
+interface Referrer {
+  referrer: string | null
+  count: number
+}
+
+interface AnalyticsData {
+  totalViews: number
+  uniquePaths: number
+  topPages: TopPage[]
+  viewsByDay: ViewByDay[]
+  referrers: Referrer[]
+}
+
+type Period = '7d' | '30d' | '90d'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(dateStr: string) {
-  const d = new Date(dateStr)
+  const d = new Date(dateStr + 'T00:00:00')
   return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
 }
 
@@ -49,13 +66,11 @@ function MetricCard({
   value,
   suffix = '',
   icon,
-  trend,
 }: {
   label: string
   value: string | number
   suffix?: string
   icon: React.ReactNode
-  trend?: { value: number; label: string }
 }) {
   return (
     <Card className="p-5">
@@ -66,11 +81,6 @@ function MetricCard({
             {value}
             {suffix && <span className="text-base font-medium text-gray-500 ml-0.5">{suffix}</span>}
           </p>
-          {trend && (
-            <p className={`mt-1 text-xs font-medium ${trend.value >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-              {trend.value >= 0 ? '+' : ''}{trend.value}% {trend.label}
-            </p>
-          )}
         </div>
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-50 text-primary-600 shrink-0">
           {icon}
@@ -110,44 +120,123 @@ function ChartTooltip({
 function AnalyticsSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {[1, 2, 3, 4].map((i) => (
+      <div className="grid grid-cols-2 gap-4">
+        {[1, 2].map((i) => (
           <div key={i} className="h-28 rounded-xl bg-gray-100 animate-pulse" />
         ))}
       </div>
       <div className="h-72 rounded-xl bg-gray-100 animate-pulse" />
+      <div className="h-48 rounded-xl bg-gray-100 animate-pulse" />
     </div>
   )
 }
 
+// ── Period Toggle ─────────────────────────────────────────────────────────────
+
+const PERIODS: { value: Period; label: string }[] = [
+  { value: '7d', label: '7d' },
+  { value: '30d', label: '30d' },
+  { value: '90d', label: '90d' },
+]
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
-  const [data, setData] = useState<AnalyticsSummary | null>(null)
+  const [sites, setSites] = useState<Site[]>([])
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null)
+  const [period, setPeriod] = useState<Period>('30d')
+  const [data, setData] = useState<AnalyticsData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [series, setSeries] = useState<'visits' | 'pageViews'>('visits')
 
+  // Step 1: load sites list once on mount
   useEffect(() => {
-    setIsLoading(true)
     api
-      .get<{ data: AnalyticsSummary }>('/tenants/me/analytics?period=30d')
-      .then(({ data }) => setData(data.data))
-      .catch((err) => setError(getApiErrorMessage(err, 'No se pudo cargar la analítica.')))
-      .finally(() => setIsLoading(false))
+      .get<{ data: Site[] }>('/sites?limit=100')
+      .then(({ data: resp }) => {
+        const list = resp.data ?? []
+        setSites(list)
+        if (list.length > 0) {
+          setSelectedSiteId(list[0].id)
+        } else {
+          setIsLoading(false)
+          setError('No tienes sitios creados aún. Crea un sitio para ver la analítica.')
+        }
+      })
+      .catch((err) => {
+        setIsLoading(false)
+        setError(getApiErrorMessage(err, 'No se pudo cargar la lista de sitios.'))
+      })
   }, [])
 
-  const chartData = data?.dailyData.map((d) => ({
-    ...d,
+  // Step 2: load analytics whenever siteId or period changes
+  const fetchAnalytics = useCallback(() => {
+    if (!selectedSiteId) return
+    setIsLoading(true)
+    setData(null)
+    setError(null)
+    api
+      .get<{ data: AnalyticsData }>(`/sites/${selectedSiteId}/analytics?period=${period}`)
+      .then(({ data: resp }) => setData(resp.data))
+      .catch((err) => setError(getApiErrorMessage(err, 'No se pudo cargar la analítica.')))
+      .finally(() => setIsLoading(false))
+  }, [selectedSiteId, period])
+
+  useEffect(() => {
+    fetchAnalytics()
+  }, [fetchAnalytics])
+
+  const chartData = data?.viewsByDay.map((d) => ({
     date: formatDate(d.date),
+    views: d.views,
   })) ?? []
+
+  const periodLabel =
+    period === '7d' ? 'Últimos 7 días' :
+    period === '30d' ? 'Últimos 30 días' :
+    'Últimos 90 días'
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900">Analítica</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Últimos 30 días</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Analítica</h2>
+          <p className="text-sm text-gray-500 mt-0.5">{periodLabel}</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Site selector — only shown when there are multiple sites */}
+          {sites.length > 1 && (
+            <select
+              value={selectedSiteId ?? ''}
+              onChange={(e) => setSelectedSiteId(e.target.value)}
+              aria-label="Seleccionar sitio"
+              className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              {sites.map((site) => (
+                <option key={site.id} value={site.id}>
+                  {site.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {/* Period toggle */}
+          <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm" role="group" aria-label="Seleccionar período">
+            {PERIODS.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setPeriod(value)}
+                className={`px-3 py-1.5 transition-colors ${period === value ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                aria-pressed={period === value}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {error && <Alert variant="error">{error}</Alert>}
@@ -156,11 +245,18 @@ export default function AnalyticsPage() {
         <AnalyticsSkeleton />
       ) : !data ? null : (
         <>
+          {/* Empty state */}
+          {data.totalViews === 0 && (
+            <div className="rounded-xl bg-amber-50 border border-amber-100 px-5 py-4 text-sm text-amber-800">
+              Aún no registramos visitas. Asegúrate de que tu sitio esté publicado.
+            </div>
+          )}
+
           {/* Metric Cards */}
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4">
             <MetricCard
-              label="Visitas"
-              value={formatNumber(data.visits30d)}
+              label="Visitas totales"
+              value={formatNumber(data.totalViews)}
               icon={
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
@@ -168,8 +264,8 @@ export default function AnalyticsPage() {
               }
             />
             <MetricCard
-              label="Páginas vistas"
-              value={formatNumber(data.pageViews30d)}
+              label="Páginas únicas"
+              value={formatNumber(data.uniquePaths)}
               icon={
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
@@ -177,59 +273,12 @@ export default function AnalyticsPage() {
                 </svg>
               }
             />
-            <MetricCard
-              label="Visitantes únicos"
-              value={formatNumber(data.uniqueVisitors30d)}
-              icon={
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-              }
-            />
-            <MetricCard
-              label="Tasa de rebote"
-              value={data.bounceRate.toFixed(1)}
-              suffix="%"
-              icon={
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <polyline points="17 1 21 5 17 9" />
-                  <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-                  <polyline points="7 23 3 19 7 15" />
-                  <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-                </svg>
-              }
-            />
           </div>
 
           {/* Chart */}
           <Card className="p-5">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-base font-semibold text-gray-900">
-                {series === 'visits' ? 'Visitas' : 'Páginas vistas'} por día
-              </h3>
-
-              {/* Series toggle */}
-              <div className="flex rounded-lg border border-gray-200 overflow-hidden text-sm" role="group" aria-label="Seleccionar serie">
-                <button
-                  type="button"
-                  onClick={() => setSeries('visits')}
-                  className={`px-3 py-1.5 transition-colors ${series === 'visits' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
-                  aria-pressed={series === 'visits'}
-                >
-                  Visitas
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSeries('pageViews')}
-                  className={`px-3 py-1.5 transition-colors ${series === 'pageViews' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
-                  aria-pressed={series === 'pageViews'}
-                >
-                  Páginas vistas
-                </button>
-              </div>
+            <div className="mb-5">
+              <h3 className="text-base font-semibold text-gray-900">Visitas por día</h3>
             </div>
 
             {chartData.length === 0 ? (
@@ -240,7 +289,7 @@ export default function AnalyticsPage() {
               <ResponsiveContainer width="100%" height={260}>
                 <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#2563eb" stopOpacity={0.15} />
                       <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
                     </linearGradient>
@@ -262,11 +311,11 @@ export default function AnalyticsPage() {
                   <Tooltip content={<ChartTooltip />} />
                   <Area
                     type="monotone"
-                    dataKey={series}
-                    name={series === 'visits' ? 'visitas' : 'páginas vistas'}
+                    dataKey="views"
+                    name="visitas"
                     stroke="#2563eb"
                     strokeWidth={2}
-                    fill="url(#colorVisits)"
+                    fill="url(#colorViews)"
                     dot={false}
                     activeDot={{ r: 4, strokeWidth: 0, fill: '#2563eb' }}
                   />
@@ -275,12 +324,33 @@ export default function AnalyticsPage() {
             )}
           </Card>
 
-          {/* Empty state hint */}
-          {data.visits30d === 0 && (
-            <div className="rounded-xl bg-amber-50 border border-amber-100 px-5 py-4 text-sm text-amber-800">
-              Aún no registramos visitas. Asegúrate de que tu sitio esté publicado y el script
-              de analítica esté instalado.
-            </div>
+          {/* Top Pages */}
+          {data.topPages.length > 0 && (
+            <Card className="p-5">
+              <h3 className="text-base font-semibold text-gray-900 mb-4">Top páginas</h3>
+              <div className="space-y-3">
+                {data.topPages.map((page) => (
+                  <div key={page.path}>
+                    <div className="flex items-center justify-between text-sm mb-1">
+                      <span className="text-gray-700 font-mono truncate max-w-[65%]" title={page.path}>
+                        {page.path}
+                      </span>
+                      <span className="text-gray-500 shrink-0 ml-2">
+                        {formatNumber(page.views)} visitas
+                        <span className="text-gray-400 ml-1.5">({page.percentage.toFixed(1)}%)</span>
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-primary-500"
+                        style={{ width: `${Math.min(page.percentage, 100)}%` }}
+                        aria-label={`${page.percentage.toFixed(1)}% del total`}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
           )}
         </>
       )}

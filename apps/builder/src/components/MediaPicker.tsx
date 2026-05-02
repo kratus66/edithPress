@@ -38,7 +38,6 @@ function MediaModal({ isOpen, onClose, onSelect }: MediaModalProps) {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const loadMedia = useCallback(() => {
     setLoading(true)
@@ -50,30 +49,61 @@ function MediaModal({ isOpen, onClose, onSelect }: MediaModalProps) {
       .finally(() => { setLoading(false) })
   }, [])
 
-  // Load media when modal opens
   useEffect(() => {
     if (!isOpen) return
     loadMedia()
   }, [isOpen, loadMedia])
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-
+  async function processFile(file: File) {
     setUploading(true)
     setUploadError(null)
-
     try {
       const formData = new FormData()
       formData.append('file', file)
-      await builderApi.upload('/media/upload', formData)
-      loadMedia()
+      const result = await builderApi.upload<{ data: MediaItem }>('/media/upload', formData)
+      onSelect(result.data.url)
+      onClose()
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Error al subir la imagen')
+      loadMedia()
     } finally {
       setUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
     }
+  }
+
+  async function handleUploadClick() {
+    if (uploading) return
+
+    // showOpenFilePicker: API nativa del browser (Chrome 86+), no requiere <input>
+    if (typeof window !== 'undefined' && 'showOpenFilePicker' in window) {
+      try {
+        const [handle] = await (window as Window & { showOpenFilePicker: (opts: unknown) => Promise<FileSystemFileHandle[]> }).showOpenFilePicker({
+          types: [{ description: 'Imágenes', accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg'] } }],
+          multiple: false,
+        })
+        const file = await handle.getFile()
+        await processFile(file)
+      } catch (err) {
+        // AbortError = usuario canceló el selector, no es un error real
+        if ((err as Error).name !== 'AbortError') {
+          setUploadError('Error al abrir el selector de archivos')
+        }
+      }
+      return
+    }
+
+    // Fallback para Firefox/Safari: input file dinámico fuera del DOM de Puck
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/jpeg,image/png,image/webp,image/gif,image/svg+xml'
+    input.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0'
+    document.body.appendChild(input)
+    input.addEventListener('change', async () => {
+      const file = input.files?.[0]
+      document.body.removeChild(input)
+      if (file) await processFile(file)
+    })
+    input.click()
   }
 
   // Close on Escape
@@ -137,15 +167,8 @@ function MediaModal({ isOpen, onClose, onSelect }: MediaModalProps) {
             Biblioteca de medios
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
-              style={{ display: 'none' }}
-              onChange={handleUpload}
-            />
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={handleUploadClick}
               disabled={uploading}
               style={{
                 padding: '6px 14px',

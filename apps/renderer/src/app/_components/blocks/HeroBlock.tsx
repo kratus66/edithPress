@@ -260,15 +260,21 @@ export function HeroBlock({
     <section style={{
       position: 'relative',
       backgroundColor, color: textColor,
-      padding: `${padding} clamp(32px, 6vw, 80px)`,
-      fontFamily, display: 'flex', justifyContent: blockJustify,
+      padding: `${padding} clamp(24px, 6vw, 80px)`,
+      fontFamily,
       ...bgStyle,
     }}>
       {overlayHex && backgroundImage && (
         <div style={{ position: 'absolute', inset: 0, backgroundColor: overlayHex, pointerEvents: 'none' }} />
       )}
-      <div style={{ maxWidth: '640px', width: '100%', position: 'relative', zIndex: 1, textAlign }}>
-        {content}
+      <div style={{
+        maxWidth: 1200, margin: '0 auto', width: '100%',
+        display: 'flex', justifyContent: blockJustify,
+        position: 'relative', zIndex: 1,
+      }}>
+        <div style={{ maxWidth: '640px', width: '100%', textAlign }}>
+          {content}
+        </div>
       </div>
     </section>
   )

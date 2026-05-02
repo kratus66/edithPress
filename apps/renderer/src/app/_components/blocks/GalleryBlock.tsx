@@ -51,7 +51,7 @@ export interface GalleryBlockProps {
 // ── Style maps ────────────────────────────────────────────────────────────────
 
 const gapMap        = { sm: '8px',  md: '16px', lg: '24px' }
-const paddingMap    = { sm: '16px 24px', md: '32px 40px', lg: '64px 40px' }
+const verticalPaddingMap = { sm: 'clamp(24px, 4vw, 32px)', md: 'clamp(32px, 5vw, 48px)', lg: 'clamp(48px, 8vw, 80px)' }
 const radiusMap     = { none: '0', sm: '4px', md: '8px', lg: '16px' }
 const directionMap: Record<GalleryGradientDirection, string> = {
   'bottom-top': 'to top',   'top-bottom': 'to bottom',
@@ -128,12 +128,13 @@ export function GalleryBlock({
   const radius = radiusMap[borderRadius ?? 'md']
 
   return (
-    <div style={{ padding: paddingMap[padding ?? 'md'] }}>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${columns}, 1fr)`,
-        gap: gapMap[gap ?? 'md'],
-      }}>
+    <section style={{ padding: `${verticalPaddingMap[padding ?? 'md']} clamp(24px, 6vw, 80px)` }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${columns}, 1fr)`,
+          gap: gapMap[gap ?? 'md'],
+        }}>
         {images.map((image, index) => {
           const hovered = hoveredIndex === index
 
@@ -219,6 +220,7 @@ export function GalleryBlock({
             </div>
           )
         })}
+        </div>
       </div>
 
       {/* Lightbox */}
@@ -283,6 +285,6 @@ export function GalleryBlock({
           </span>
         </div>
       )}
-    </div>
+    </section>
   )
 }

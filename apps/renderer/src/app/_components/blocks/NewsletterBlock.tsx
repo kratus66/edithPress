@@ -117,7 +117,7 @@ export function NewsletterBlock({
   const isCentered = layout === 'centered'
 
   return (
-    <section style={{ backgroundColor, padding: '64px 24px' }}>
+    <section style={{ backgroundColor, padding: 'clamp(48px, 8vw, 80px) clamp(24px, 6vw, 80px)' }}>
       {isCentered ? (
         <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
           <h2 style={{ color: textColor, fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 700, marginBottom: 12 }}>
